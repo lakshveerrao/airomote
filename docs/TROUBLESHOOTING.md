@@ -30,6 +30,15 @@
 | Low frame rate in 3D activities | Aero picks a scene quality tier from the GPU (shadows off and lower pixel ratio on integrated GPUs). Force it with `localStorage.setItem('aero.sceneQuality','low')` (or `'high'`) and reload. Close other GPU-heavy tabs. |
 | Noticeable lag | Close other tabs using the GPU; keep the app in the foreground (background tabs throttle timers). BLE interval set by the OS may be 30 ms on some laptops. |
 
+## Flashing / first boot
+
+| Symptom | Fix |
+|---|---|
+| After `-t upload` the board sits in download mode (`boot:0x4 DOWNLOAD`, no BLE advert) | On boards with the native USB Serial/JTAG port the host's DTR/RTS emulation can leave the chip in download mode after esptool's reset. Press the board's RESET/EN button once (or unplug and replug USB). Verified on ESP32-C6FH4: after a physical reset the app advertises as `Aero-1-xxxx`. |
+| `esptool` only reported one `Wrote … at 0x20000` | Flash all images explicitly: `esptool.py --chip esp32c6 --port COMx write_flash 0x0 bootloader.bin 0x8000 partitions.bin 0xf000 ota_data_initial.bin 0x20000 firmware.bin` (files in `.pio/build/aero_c6/`). |
+| INFO shows `error 1 (MPU_NOT_FOUND)`, `mpuAddress 0x0`, no motion packets | The MPU6050 is not on the configured I²C pins (defaults SDA=6, SCL=7, UNVERIFIED). Set `BOARD_I2C_SDA_GPIO`/`BOARD_I2C_SCL_GPIO` in `board_config.h` to the wired pins, check 3.3 V/GND and AD0, rebuild and flash. The controller still advertises and answers INFO so the app can show the error. |
+| USB console prints nothing | Open the port with DTR and RTS de-asserted (`pio device monitor --dtr 0 --rts 0`); asserting them resets the chip into download mode. If still silent, check Settings → Developer over BLE instead — INFO/LOG packets carry the same status. |
+
 ## Developer
 
 | Symptom | Fix |
