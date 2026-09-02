@@ -1,0 +1,169 @@
+.guitar-intro {
+  margin-top: 18px;
+}
+.compass {
+  position: relative;
+  height: 190px;
+  margin: 0 auto;
+  max-width: 460px;
+}
+.compass__center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 1px dashed var(--border-strong);
+  display: grid;
+  place-items: center;
+}
+.compass__ctrl {
+  width: 16px;
+  height: 46px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f4f6fb, #b9bdcb);
+}
+.compass__item {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: all var(--dur) var(--ease);
+  white-space: nowrap;
+}
+.compass__item--on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.compass__chord {
+  font-weight: 750;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.compass__hint {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.guitar-stats {
+  padding: 12px 20px;
+}
+.guitar-stat {
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.chord-panel {
+  padding: 18px 24px 18px;
+  min-width: 300px;
+}
+.chord-panel__name {
+  font-size: clamp(64px, 9vw, 112px);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  color: var(--text);
+  animation: chord-pop 360ms var(--ease-out) both;
+  text-shadow: 0 0 40px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+@keyframes chord-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.chord-panel__row {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+.chord-chip {
+  height: 32px;
+  min-width: 42px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: all var(--dur) var(--ease);
+}
+.chord-chip--on {
+  color: #0b0d12;
+  background: var(--accent);
+  border-color: transparent;
+}
+
+.strum-panel {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 20px;
+}
+.strum-panel__side {
+  min-width: 150px;
+}
+.strum-arrow {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-faint);
+  transition: color 120ms var(--ease), transform 120ms var(--ease);
+}
+.strum-arrow--down,
+.strum-arrow--up {
+  color: var(--accent);
+}
+.strum-arrow--down {
+  transform: translateY(6px);
+}
+.strum-arrow--up {
+  transform: translateY(-6px);
+}
+.strum-arrow--mute {
+  font-size: 22px;
+  letter-spacing: 0.14em;
+  color: var(--danger);
+}
+.strum-meter {
+  margin-top: 10px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.strum-meter__fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 90ms var(--ease-out);
+}
+.chord-diagram {
+  flex: none;
+}
+@media (max-width: 1000px) {
+  .chord-panel {
+    min-width: 220px;
+    padding: 14px 18px;
+  }
+  .chord-panel__name {
+    font-size: 56px;
+  }
+  .strum-panel__side {
+    min-width: 110px;
+  }
+}

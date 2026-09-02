@@ -5,6 +5,7 @@ import { activityComponents } from '@/activities';
 import { activityRegistry } from '@/core/runtime';
 import { useSettings } from '@/store/settings';
 import { Spinner } from '@/ui';
+import { useAutoReconnect } from '@/features/setup/useAutoReconnect';
 import '@/styles/global.css';
 
 const HomePage = lazy(() => import('@/features/home/HomePage'));
@@ -50,6 +51,7 @@ function FirstRunGate({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  useAutoReconnect();
   return (
     <FirstRunGate>
       <Routes>

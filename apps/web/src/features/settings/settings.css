@@ -1,0 +1,106 @@
+.settings {
+  max-width: 980px;
+}
+.ctrl-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 860px) {
+  .ctrl-cards {
+    grid-template-columns: 1fr;
+  }
+}
+.ctrl-card {
+  position: relative;
+  padding: 22px 24px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--cc) 16%, transparent), transparent 55%),
+    var(--bg-elev);
+  overflow: hidden;
+}
+.ctrl-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ctrl-card__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  padding: 4px 8px;
+  margin-left: -8px;
+  border-radius: 8px;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+}
+.ctrl-card__name:hover {
+  background: var(--surface);
+}
+.ctrl-card__name:focus {
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.ctrl-card__state {
+  margin-top: 6px;
+  color: var(--text-dim);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ctrl-card__meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+.ctrl-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.ctrl-card__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--cc);
+  flex: none;
+}
+.ctrl-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 0 18px;
+}
+.about-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+.about-line:last-child {
+  border-bottom: 0;
+}
+.about-line span:last-child {
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.confirm-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

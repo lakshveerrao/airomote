@@ -1,0 +1,26 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const errs = [];
+page.on('pageerror', (e) => errs.push(e.message));
+page.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
+await page.goto('http://127.0.0.1:5173/setup');
+await page.evaluate(() => localStorage.setItem('aero.settings.v1', JSON.stringify({ state: { developerMode: true }, version: 0 })));
+await page.goto('http://127.0.0.1:5173/setup', { waitUntil: 'networkidle' });
+await page.getByText('Get started').click();
+await page.getByText("It’s on").click();
+await page.screenshot({ path: '/tmp/s-setup-connect.png' });
+await page.getByText('Use a simulated controller').click();
+await page.waitForTimeout(1200);
+await page.getByText("It’s on").click();
+await page.getByText('Use a simulated controller').click();
+await page.waitForTimeout(1200);
+await page.screenshot({ path: '/tmp/s-setup-calib.png' });
+await page.waitForTimeout(3500);
+await page.screenshot({ path: '/tmp/s-setup-track.png' });
+// simulate movement
+await page.evaluate(() => { const m = window.__aero.controllerManager; m.getSimulator(1).model.swing('down', 0.8); m.getSimulator(2).model.swing('up', 0.8); });
+await page.waitForTimeout(1200);
+await page.screenshot({ path: '/tmp/s-setup-track2.png' });
+console.log(errs.length ? errs.join('\n') : 'no errors');
+await browser.close();

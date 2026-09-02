@@ -122,6 +122,40 @@ export class SimulatedController {
     this.yawTransientUntil = this.time + dur;
   }
 
+  /**
+   * Workout helper: plays a squat as a world-vertical acceleration profile (down, stop, hold,
+   * up, stop) with a small forward lean. `amplitude` in g (0.25 = a real squat, 0.06 = a wobble).
+   */
+  simulateSquat(amplitude = 0.3, holdBottomS = 0.25): void {
+    const now = this.time;
+    // sin half-wave impulses have area 2/π·A·d — scale so the mean matches a flat profile
+    const A = (amplitude * Math.PI) / 2;
+    const seg = 0.35;
+    const push = (t: number, sign: number) => this.impulses.push({ axis: 'z', amplitude: A, t, duration: seg, sign });
+    push(now, -1);
+    push(now + seg, +1);
+    push(now + 2 * seg + holdBottomS, +1);
+    push(now + 3 * seg + holdBottomS, -1);
+    const total = 4 * seg + holdBottomS;
+    const p0 = this.pitch;
+    this.scripted = [
+      { t: now, pitch: p0, roll: this.roll },
+      { t: now + total / 2, pitch: p0 - 12, roll: this.roll },
+      { t: now + total, pitch: p0, roll: this.roll },
+    ];
+  }
+
+  /** Workout helper: an upper-arm push-up — pitch swings out by `angleDeg` and back over `seconds`. */
+  simulatePushup(angleDeg = 50, seconds = 1.8): void {
+    const now = this.time;
+    const p0 = this.pitch;
+    this.scripted = [
+      { t: now, pitch: p0, roll: this.roll },
+      { t: now + seconds / 2, pitch: p0 + angleDeg, roll: this.roll },
+      { t: now + seconds, pitch: p0, roll: this.roll },
+    ];
+  }
+
   /** Advance the model by dt seconds and produce a sample. */
   step(dt: number): SimSample {
     this.time += dt;
@@ -134,6 +168,8 @@ export class SimulatedController {
       const t = this.time;
       if (t >= s[s.length - 1].t) {
         this.scripted = null;
+        this.pitchVel = 0;
+        this.rollVel = 0;
       } else {
         for (let i = 0; i < s.length - 1; i++) {
           if (t >= s[i].t && t < s[i + 1].t) {
@@ -150,10 +186,18 @@ export class SimulatedController {
     // critically-damped-ish second order follow
     const prevPitch = this.pitch;
     const prevRoll = this.roll;
-    this.pitchVel += (k * (tp - this.pitch) - 2 * Math.sqrt(k) * this.pitchVel) * dt;
-    this.rollVel += (k * (tr - this.roll) - 2 * Math.sqrt(k) * this.rollVel) * dt;
-    this.pitch += this.pitchVel * dt;
-    this.roll += this.rollVel * dt;
+    if (this.scripted) {
+      // Scripted gestures (strikes/swings) are keyframed: follow exactly so the angular rates are real.
+      this.pitchVel = (tp - this.pitch) / dt;
+      this.rollVel = (tr - this.roll) / dt;
+      this.pitch = tp;
+      this.roll = tr;
+    } else {
+      this.pitchVel += (k * (tp - this.pitch) - 2 * Math.sqrt(k) * this.pitchVel) * dt;
+      this.rollVel += (k * (tr - this.roll) - 2 * Math.sqrt(k) * this.rollVel) * dt;
+      this.pitch += this.pitchVel * dt;
+      this.roll += this.rollVel * dt;
+    }
     if (this.handTremor) {
       this.pitch += Math.sin(this.time * 7.3) * 0.02;
       this.roll += Math.cos(this.time * 5.1) * 0.02;

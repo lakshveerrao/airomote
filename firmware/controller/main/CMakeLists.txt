@@ -1,0 +1,29 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "config/config_store.c"
+        "sensor/mpu6050.c"
+        "calibration/calibration.c"
+        "motion/motion.c"
+        "communication/protocol.c"
+        "communication/ble_transport.c"
+        "communication/serial_transport.c"
+        "communication/command_handler.c"
+        "power/battery.c"
+        "diagnostics/diagnostics.c"
+    INCLUDE_DIRS "."
+    REQUIRES
+        bt
+        nvs_flash
+        esp_driver_i2c
+        esp_driver_gpio
+        esp_adc
+        esp_timer
+        esp_driver_usb_serial_jtag
+        vfs
+        app_update
+        esp_system
+        esp_hw_support
+        esp_partition
+        log
+)

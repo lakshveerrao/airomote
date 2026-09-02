@@ -1,0 +1,246 @@
+/* ---------- coaching HUD ---------- */
+.whud {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+  gap: 24px;
+}
+.whud__reps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.whud__phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 10px;
+  align-self: flex-start;
+}
+.whud__phase-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 14px currentColor;
+}
+.whud__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+}
+.whud__timer {
+  font-size: clamp(28px, 3.4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.whud__rhythm {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.whud__waiting {
+  font-size: 15px;
+  color: var(--text-dim);
+  max-width: 34ch;
+}
+
+/* calibration overlay inside the stage */
+.wcal {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  animation: fade-in var(--dur) var(--ease) both;
+}
+.wcal__card {
+  text-align: center;
+  padding: 28px 40px;
+}
+.wcal__title {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.wcal__bar {
+  width: 220px;
+  height: 6px;
+  margin: 18px auto 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.wcal__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--activity-accent, var(--accent));
+  transition: width 120ms linear;
+}
+
+/* ---------- summary ---------- */
+.wsummary__reps {
+  font-size: 96px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+}
+.wsummary__reps-label {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text-dim);
+}
+.wsummary__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 26px;
+}
+.wsummary__stat {
+  padding: 14px 8px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.wsummary__stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.wsummary__stat-label {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.wsummary__note {
+  margin-top: 18px;
+  font-size: 15px;
+}
+@media (max-width: 560px) {
+  .wsummary__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ---------- history ---------- */
+.hist-totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.hist-total {
+  padding: 22px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+}
+.hist-total__value {
+  font-size: 40px;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.hist-total__label {
+  margin-top: 8px;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+}
+.hist-day {
+  margin-bottom: 26px;
+}
+.hist-day__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 12px;
+}
+.hist-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  transition: border-color var(--dur) var(--ease);
+}
+.hist-row:hover {
+  border-color: var(--border-strong);
+}
+.hist-row__accent {
+  width: 6px;
+  height: 44px;
+  border-radius: 4px;
+  flex: none;
+}
+.hist-row__name {
+  font-weight: 650;
+  font-size: 16px;
+}
+.hist-row__time {
+  color: var(--text-faint);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.hist-row__stats {
+  margin-left: auto;
+  display: flex;
+  gap: 28px;
+  text-align: right;
+}
+.hist-row__stat-value {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.hist-row__stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.hist-row__delete {
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+.hist-row:hover .hist-row__delete,
+.hist-row__delete:focus-visible {
+  opacity: 1;
+}
+@media (max-width: 760px) {
+  .hist-totals {
+    grid-template-columns: 1fr;
+  }
+  .hist-row__stats {
+    gap: 14px;
+  }
+  .hist-row__delete {
+    opacity: 1;
+  }
+}

@@ -1,4 +1,11 @@
+import { useCallback } from 'react';
 import type { ActivityComponentProps } from '@/activities';
+import { WorkoutActivity } from '@/features/workout/WorkoutActivity';
+import { PushupDetector, pushupOptionsFor } from './pushupDetector';
+
+const LABELS = { UP: 'Top', DESCENDING: 'Down', BOTTOM: 'Hold', ASCENDING: 'Up' };
+
 export default function Pushups({ definition }: ActivityComponentProps) {
-  return <div className="page"><h1>{definition.name}</h1><p className="dim">Placeholder — implementation pending.</p></div>;
+  const create = useCallback((level: 'low' | 'normal' | 'high') => new PushupDetector(pushupOptionsFor(level)), []);
+  return <WorkoutActivity definition={definition} mode="pushup" createDetector={create} phaseLabel={LABELS} />;
 }

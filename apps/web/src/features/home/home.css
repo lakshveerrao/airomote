@@ -1,0 +1,196 @@
+.home {
+  padding-top: 40px;
+}
+.home__hero {
+  margin-bottom: 36px;
+}
+.home__hero h1 {
+  max-width: 24ch;
+}
+.home__hero p {
+  margin-top: 14px;
+  font-size: 18px;
+  color: var(--text-dim);
+  max-width: 44ch;
+}
+
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+@media (max-width: 980px) {
+  .cat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.cat-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: clamp(280px, 38vh, 400px);
+  padding: 30px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(130% 100% at 100% 0%, color-mix(in srgb, var(--cat) 30%, transparent), transparent 58%),
+    var(--bg-elev);
+  color: var(--text);
+  transition:
+    transform var(--dur-slow) var(--ease-out),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur-slow) var(--ease);
+}
+.cat-card:hover {
+  transform: translateY(-6px);
+  border-color: color-mix(in srgb, var(--cat) 50%, var(--border));
+  box-shadow: 0 40px 70px -36px color-mix(in srgb, var(--cat) 60%, transparent);
+}
+.cat-card:active {
+  transform: translateY(-2px) scale(0.995);
+}
+.cat-card__icon {
+  position: absolute;
+  top: 26px;
+  left: 28px;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--cat) 18%, transparent);
+  color: var(--cat);
+}
+.cat-card__orb {
+  position: absolute;
+  right: -70px;
+  top: -70px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--cat) 85%, white 8%), color-mix(in srgb, var(--cat) 30%, transparent) 58%, transparent 72%);
+  filter: blur(4px);
+  opacity: 0.9;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+.cat-card:hover .cat-card__orb {
+  transform: scale(1.1) translate(-10px, 10px);
+}
+.cat-card__title {
+  font-size: clamp(30px, 2.8vw, 40px);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.cat-card__blurb {
+  margin-top: 10px;
+  color: var(--text-dim);
+  font-size: 16px;
+}
+.cat-card__count {
+  margin-top: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-faint);
+  font-size: 13px;
+  font-weight: 600;
+}
+.cat-card__count svg {
+  transition: transform var(--dur) var(--ease);
+}
+.cat-card:hover .cat-card__count svg {
+  transform: translateX(4px);
+}
+
+.home__lower {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+@media (max-width: 980px) {
+  .home__lower {
+    grid-template-columns: 1fr;
+  }
+}
+.continue-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 26px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text);
+  transition:
+    transform var(--dur-slow) var(--ease-out),
+    border-color var(--dur) var(--ease);
+}
+.continue-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+}
+.continue-card__eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+.continue-card__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.continue-card__play {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--cc);
+  color: #0b0d12;
+  flex: none;
+}
+
+.status-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+.status-strip__items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.status-strip__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.status-strip__item .state {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.status-strip__item .bat {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
