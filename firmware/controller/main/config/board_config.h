@@ -1,6 +1,6 @@
 /**
  * @file board_config.h
- * @brief ALL board-specific values for the Aero controller live here.
+ * @brief ALL board-specific values for the AiroMote controller live here.
  *
  * The defaults below target a generic "ESP32-C6 Mini" module and are UNVERIFIED.
  * Before the first flash, open the schematic of your exact board and confirm every

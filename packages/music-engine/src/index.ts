@@ -1,5 +1,5 @@
 /**
- * @aero/music-engine — low-latency Web Audio engine for Aero instruments.
+ * @aero/music-engine — low-latency Web Audio engine for AiroMote instruments.
  * See docs/MUSIC_ENGINE.md.
  */
 export * from './engine';

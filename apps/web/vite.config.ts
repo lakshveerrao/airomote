@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.svg', 'icons/*.png'],
       manifest: {
-        name: 'Aero Motion',
-        short_name: 'Aero',
+        name: 'AiroMote Motion',
+        short_name: 'AiroMote',
         description: 'Two motion controllers. Games, music and workouts in one app.',
         theme_color: '#0b0d12',
         background_color: '#0b0d12',

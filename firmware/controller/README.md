@@ -1,6 +1,6 @@
-# Aero controller firmware (ESP32-C6 Mini + MPU6050)
+# AiroMote controller firmware (ESP32-C6 Mini + MPU6050)
 
-ESP-IDF 6.0 firmware for the two Aero motion controllers. Each controller streams calibrated
+ESP-IDF 6.0 firmware for the two AiroMote motion controllers. Each controller streams calibrated
 motion packets over Bluetooth LE (NimBLE) — and optionally over USB — using the versioned
 32-byte protocol shared with the web app (`packages/protocol`).
 

@@ -1,5 +1,5 @@
 /**
- * Aero Motion Protocol — constants shared (by hand) with firmware/controller/main/communication/protocol.h
+ * AiroMote Motion Protocol — constants shared (by hand) with firmware/controller/main/communication/protocol.h
  * Keep these two files in sync. Any change to layout bumps PROTOCOL_VERSION.
  */
 export const PROTOCOL_MAGIC = 0xa5;
@@ -96,7 +96,7 @@ export const BATTERY_UNKNOWN = 255;
 export const BLE_SERVICE_UUID = '7a3e0001-4d6f-7469-6f6e-416572304d43';
 export const BLE_TX_CHAR_UUID = '7a3e0002-4d6f-7469-6f6e-416572304d43'; // device → host (notify)
 export const BLE_RX_CHAR_UUID = '7a3e0003-4d6f-7469-6f6e-416572304d43'; // host → device (write)
-export const BLE_NAME_PREFIX = 'Aero-';
+export const BLE_NAME_PREFIX = 'AiroMote-';
 
 /** Rates (documented in docs/PROTOCOL.md). */
 export const SENSOR_SAMPLE_RATE_HZ = 200;

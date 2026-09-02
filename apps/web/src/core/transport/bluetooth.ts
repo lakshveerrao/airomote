@@ -42,7 +42,7 @@ export class BluetoothTransport extends BaseTransport {
 
   private adopt(device: BluetoothDevice): void {
     this.device = device;
-    this.info = { kind: 'bluetooth', name: device.name ?? 'Aero controller', id: device.id };
+    this.info = { kind: 'bluetooth', name: device.name ?? 'AiroMote controller', id: device.id };
     device.addEventListener('gattserverdisconnected', this.handleDisconnected);
   }
 

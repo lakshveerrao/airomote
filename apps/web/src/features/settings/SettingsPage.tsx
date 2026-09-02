@@ -272,14 +272,14 @@ export default function SettingsPage() {
 
         <Section title="About">
           <div className="about-line">
-            <span>Aero</span>
+            <span>AiroMote</span>
             <span>v{APP_VERSION}</span>
           </div>
           <div className="about-line">
             <span>Motion protocol</span>
             <span>v{PROTOCOL_VERSION}</span>
           </div>
-          <SettingRow label="Install as an app" hint={install ? 'Works offline and opens full-screen.' : 'Use your browser’s “Install app” option to add Aero to your device.'}>
+          <SettingRow label="Install as an app" hint={install ? 'Works offline and opens full-screen.' : 'Use your browser’s “Install app” option to add AiroMote to your device.'}>
             {install && (
               <Button size="sm" onClick={() => install.prompt()}>
                 Install

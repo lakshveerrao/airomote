@@ -1,6 +1,6 @@
-# Aero — two motion controllers, one app
+# AiroMote — two motion controllers, one app
 
-Aero is a pair of handheld motion controllers (ESP32-C6 Mini + MPU6050, battery powered,
+AiroMote is a pair of handheld motion controllers (ESP32-C6 Mini + MPU6050, battery powered,
 Bluetooth LE) and a browser app that turns the same two remotes into a kart-racing controller,
 two drumsticks, a guitar (chord hand + strumming hand) and a workout rep counter.
 
@@ -54,7 +54,7 @@ npm run build        # production build + service worker (apps/web/dist)
 npm run preview      # serve the production build
 ```
 
-Install as an app: open the site in Chrome/Edge → *Install Aero*. The app shell, activities,
+Install as an app: open the site in Chrome/Edge → *Install AiroMote*. The app shell, activities,
 3D scenes and synthesised audio all work offline; nothing needs a server.
 
 ## Firmware
@@ -72,7 +72,7 @@ name <x> rate <hz> stream on|off factory identify reset reboot`.
 ## First run
 
 1. Open the app → **Setup** starts automatically.
-2. Turn on Controller 1 → **Connect** (Bluetooth picker shows `Aero-…`; USB also works).
+2. Turn on Controller 1 → **Connect** (Bluetooth picker shows `AiroMote-…`; USB also works).
 3. Turn on Controller 2 → Connect (or *Skip* to use one controller).
 4. Put both controllers down for a moment: **Hold still → Calibrating → Ready** happens on the
    device automatically (gyro offsets, accelerometer baseline, neutral pose). No numbers shown.
@@ -151,7 +151,7 @@ storage) and a final CONTROLLER PASSED / FAILED verdict with a copyable report. 
 - Silent reconnect after reload relies on `navigator.bluetooth.getDevices()`; otherwise one
   click reconnects.
 - WebHID transport is prepared but inactive (the firmware exposes BLE + USB-CDC).
-- Background tabs throttle timers → motion stalls; keep Aero in the foreground. Headless
+- Background tabs throttle timers → motion stalls; keep AiroMote in the foreground. Headless
   browsers throttle even harder (screenshot scripts accept `HEADED=1`).
 - Audio starts after the Start click (autoplay policy).
 

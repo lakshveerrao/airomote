@@ -65,7 +65,7 @@ Every default is marked `UNVERIFIED`:
   re-bias after 10 s of stillness.
 - **Streaming**: MOTION 100 Hz (configurable 25–200), INFO 1 Hz, CALIBRATION on completion.
 - **Commands**: see PROTOCOL.md. `SET_DEVICE_ID` decides whether the device announces as
-  `Aero-1-xxxx` or `Aero-2-xxxx`; the app can also just connect either device to either slot.
+  `AiroMote-1-xxxx` or `AiroMote-2-xxxx`; the app can also just connect either device to either slot.
 - **Watchdog / safe restart**: both tasks feed the task WDT; repeated sensor failures restart
   the sensor, then the device; reset reason becomes `WATCHDOG_RESET` / `BROWNOUT_RESET` in INFO.
 - **Factory test**: `FACTORY_TEST` command or `factory` console command runs boot / MPU /

@@ -1,7 +1,7 @@
 # Factory Test
 
 For assembling the first ~100 controllers. One technician, one laptop with Chrome/Edge, the
-Aero web app (installed as a PWA or `npm run dev`), one controller at a time.
+AiroMote web app (installed as a PWA or `npm run dev`), one controller at a time.
 
 ## Where
 
@@ -12,7 +12,7 @@ for the assembly bench: big status, PASS/FAIL per check, one final verdict.
 
 1. **Flash** the firmware (`python -m platformio run -d firmware/controller -t upload`). The LED
    fast-blinks on boot, then blinks at 1 Hz while calibrating, then heartbeats.
-2. **Connect** the controller in Step 1 of the page — Bluetooth (picker shows `Aero-…`) or USB.
+2. **Connect** the controller in Step 1 of the page — Bluetooth (picker shows `AiroMote-…`) or USB.
 3. **Identity** appears automatically from the INFO packet: firmware version/build, hardware
    revision, unique id, controller id, battery. Use *Set as Controller 1 / 2* to assign the slot
    id that will be printed on the unit. *Identify* blinks the LED to confirm which unit it is.

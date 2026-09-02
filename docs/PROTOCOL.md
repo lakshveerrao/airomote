@@ -1,4 +1,4 @@
-# Aero Motion Protocol (v1)
+# AiroMote Motion Protocol (v1)
 
 Shared by `firmware/controller/main/communication/protocol.h` and `packages/protocol/src`.
 Both sides must be changed together; any layout change bumps `PROTOCOL_VERSION`.
@@ -112,7 +112,7 @@ Byte 8 = command id, bytes 9–29 = arguments.
 | Service | `7a3e0001-4d6f-7469-6f6e-416572304d43` |
 | TX (notify, device → host) | `7a3e0002-4d6f-7469-6f6e-416572304d43` |
 | RX (write / write-no-response, host → device) | `7a3e0003-4d6f-7469-6f6e-416572304d43` |
-| Advertised name | `Aero-<deviceId>-<last 4 hex of MAC>` |
+| Advertised name | `AiroMote-<deviceId>-<last 4 hex of MAC>` |
 
 Connection parameters requested by the device: interval 7.5–15 ms, MTU ≥ 64.
 

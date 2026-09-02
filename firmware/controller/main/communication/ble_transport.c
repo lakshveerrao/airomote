@@ -167,7 +167,7 @@ static void start_advertising(void)
 
 static void build_name(void)
 {
-    snprintf(s_name, sizeof(s_name), "Aero-%u-%02X%02X", g_app.device_id, g_app.mac[4], g_app.mac[5]);
+    snprintf(s_name, sizeof(s_name), "AiroMote-%u-%02X%02X", g_app.device_id, g_app.mac[4], g_app.mac[5]);
     ble_svc_gap_device_name_set(s_name);
 }
 
@@ -257,7 +257,7 @@ esp_err_t aero_ble_init(ble_rx_handler_t rx_handler)
     rc = ble_gatts_add_svcs(s_gatt_svcs);
     if (rc != 0) return ESP_FAIL;
     ble_att_set_preferred_mtu(128);
-    snprintf(s_name, sizeof(s_name), "Aero-%u", g_app.device_id);
+    snprintf(s_name, sizeof(s_name), "AiroMote-%u", g_app.device_id);
     ble_svc_gap_device_name_set(s_name);
 
     nimble_port_freertos_init(host_task);

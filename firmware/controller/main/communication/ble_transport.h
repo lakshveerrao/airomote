@@ -2,7 +2,7 @@
  * @file ble_transport.h
  * @brief NimBLE peripheral: one service, TX (notify) + RX (write) characteristics.
  *
- * Device name: "Aero-<id>-<last 4 hex of MAC>". Service/characteristic UUIDs match
+ * Device name: "AiroMote-<id>-<last 4 hex of MAC>". Service/characteristic UUIDs match
  * packages/protocol/src/constants.ts. Outgoing packets go through a queue drained by a
  * dedicated task so the sensor path never blocks on the radio. Up to two motion packets are
  * coalesced into one notification when the negotiated MTU allows (≥ 64 + 3).

@@ -1,6 +1,6 @@
 /**
  * @file protocol.h
- * @brief Aero motion protocol v1 — 32-byte little-endian packets.
+ * @brief AiroMote motion protocol v1 — 32-byte little-endian packets.
  *
  * MUST stay byte-for-byte identical to packages/protocol/src/{constants,codec}.ts.
  * Any layout change bumps AERO_PROTOCOL_VERSION in both places.

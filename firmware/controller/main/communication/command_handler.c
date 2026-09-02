@@ -122,7 +122,7 @@ void command_handle_bytes(const uint8_t *data, size_t len)
 
 static void print_help(void)
 {
-    printf("Aero controller console\n"
+    printf("AiroMote controller console\n"
            "  help            this list\n"
            "  info            identity, status, calibration, battery\n"
            "  cal             start calibration (hold still)\n"

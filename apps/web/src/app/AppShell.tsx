@@ -39,9 +39,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <header className="shell__nav">
-        <NavLink to="/" className="shell__logo" aria-label="Aero home">
+        <NavLink to="/" className="shell__logo" aria-label="AiroMote home">
           <span className="shell__logo-mark" />
-          <span>Aero</span>
+          <span>AiroMote</span>
         </NavLink>
         <nav className="shell__links" aria-label="Main">
           <NavLink to="/games" className={({ isActive }) => `shell__link ${isActive ? 'shell__link--on' : ''}`}>

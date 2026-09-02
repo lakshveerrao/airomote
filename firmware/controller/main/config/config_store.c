@@ -3,6 +3,13 @@
  */
 #include "config/config_store.h"
 
+#ifndef AERO_DEFAULT_SERIAL_STREAM
+#define AERO_DEFAULT_SERIAL_STREAM 0
+#endif
+#ifndef AERO_DEFAULT_DEVICE_ID
+#define AERO_DEFAULT_DEVICE_ID 1
+#endif
+
 #include <string.h>
 
 #include "config/board_config.h"
@@ -19,10 +26,10 @@ aero_config_t g_config;
 static void set_defaults(aero_config_t *cfg)
 {
     memset(cfg, 0, sizeof(*cfg));
-    cfg->device_id = 1;
-    strncpy(cfg->name, "Aero", AERO_NAME_MAX);
+    cfg->device_id = AERO_DEFAULT_DEVICE_ID; /* build flag; SET_DEVICE_ID / console `id` override and persist */
+    strncpy(cfg->name, "AiroMote", AERO_NAME_MAX);
     cfg->packet_rate_hz = AERO_DEFAULT_PACKET_RATE_HZ;
-    cfg->serial_stream = false;
+    cfg->serial_stream = AERO_DEFAULT_SERIAL_STREAM != 0; /* build flag; console `stream on|off` overrides and persists */
     cfg->has_calibration = false;
     cfg->accel_baseline_g[2] = 1.0f;
 }
@@ -55,7 +62,7 @@ esp_err_t config_store_load(aero_config_t *cfg)
     if (nvs_get_u8(h, "stream", &u8) == ESP_OK) cfg->serial_stream = u8 != 0;
     if (nvs_get_u8(h, "cal_q", &u8) == ESP_OK) cfg->calibration_quality = u8;
     size_t len = sizeof(cfg->name);
-    if (nvs_get_str(h, "name", cfg->name, &len) != ESP_OK) strncpy(cfg->name, "Aero", AERO_NAME_MAX);
+    if (nvs_get_str(h, "name", cfg->name, &len) != ESP_OK) strncpy(cfg->name, "AiroMote", AERO_NAME_MAX);
     len = sizeof(cfg->gyro_offset_dps);
     size_t len2 = sizeof(cfg->accel_baseline_g);
     if (nvs_get_blob(h, "gyro_off", cfg->gyro_offset_dps, &len) == ESP_OK &&

@@ -145,7 +145,7 @@ export default function SetupPage() {
     <div className="setup">
       <div className="setup__top">
         <div className="setup__brand">
-          <span className="setup__brand-mark" /> Aero
+          <span className="setup__brand-mark" /> AiroMote
         </div>
         <div className="setup__dots" aria-label={`Step ${idx + 1} of ${ORDER.length}`}>
           {ORDER.map((s, i) => (

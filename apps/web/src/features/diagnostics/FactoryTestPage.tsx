@@ -175,7 +175,7 @@ export default function FactoryTestPage() {
 
   const report = useMemo(() => {
     const lines = [
-      `Aero controller factory test`,
+      `AiroMote controller factory test`,
       `Date:      ${new Date(finishedAt ?? Date.now()).toISOString()}`,
       `Unique id: ${info?.uniqueId ?? 'unknown'}`,
       `Device id: ${info?.deviceId ?? slot.id}`,

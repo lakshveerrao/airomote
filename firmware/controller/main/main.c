@@ -1,6 +1,6 @@
 /**
  * @file main.c
- * @brief Aero controller entry point: init order, tasks, watchdog, packet fan-out.
+ * @brief AiroMote controller entry point: init order, tasks, watchdog, packet fan-out.
  *
  * Tasks
  *   sensor_task   200 Hz  read MPU6050 → calibration → motion → queue every Nth sample
@@ -253,6 +253,7 @@ static void house_task(void *arg)
                 else if (n == 1) snprintf(msg, sizeof(msg), "i2c dev 0x%02X only", found[0]);
                 else snprintf(msg, sizeof(msg), "i2c 0x%02X 0x%02X +%u", found[0], found[1], (unsigned)(n - 2) % 10u);
                 transport_send_log(AERO_LOG_WARN, msg);
+                ESP_LOGE(TAG, "sensor retry: %s (SDA=%d SCL=%d, pullups=%d)", msg, BOARD_I2C_SDA_GPIO, BOARD_I2C_SCL_GPIO, BOARD_I2C_INTERNAL_PULLUPS);
             }
         }
 
@@ -281,7 +282,7 @@ static void house_task(void *arg)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "Aero controller fw %d.%d.%d build %d hw rev %d", AERO_FW_MAJOR, AERO_FW_MINOR, AERO_FW_PATCH,
+    ESP_LOGI(TAG, "AiroMote controller fw %d.%d.%d build %d hw rev %d", AERO_FW_MAJOR, AERO_FW_MINOR, AERO_FW_PATCH,
              AERO_FW_BUILD, AERO_HW_REV);
     memset(&g_app, 0, sizeof(g_app));
     g_app.battery_pct = AERO_BATTERY_UNKNOWN;
