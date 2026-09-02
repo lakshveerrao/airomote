@@ -1,4 +1,5 @@
 import { useRef, type MutableRefObject } from 'react';
+import { sceneSettings } from '@/features/activity/sceneQuality';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -89,8 +90,9 @@ function Floor({ accent }: { accent: string }) {
 }
 
 export function WorkoutStage({ visual, mode, accent }: { visual: MutableRefObject<WorkoutVisual>; mode: FigureMode; accent: string }) {
+  const quality = sceneSettings();
   return (
-    <Canvas dpr={[1, 1.75]} shadows camera={{ position: [0, 1.6, 5.4], fov: 40 }} gl={{ antialias: true, alpha: false }} onCreated={({ gl, scene }) => { gl.setClearColor('#06070a'); scene.fog = new THREE.Fog('#06070a', 7, 14); }}>
+    <Canvas dpr={quality.dpr} shadows={quality.shadows} camera={{ position: [0, 1.5, 6.4], fov: 42 }} gl={{ antialias: true, alpha: false }} onCreated={({ gl, scene }) => { gl.setClearColor('#06070a'); scene.fog = new THREE.Fog('#06070a', 7, 14); }}>
       <ambientLight intensity={0.35} />
       <directionalLight position={[3, 6, 4]} intensity={1.1} castShadow shadow-mapSize={[1024, 1024]} />
       <Floor accent={accent} />

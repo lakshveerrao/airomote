@@ -230,7 +230,7 @@ void diagnostics_factory_test_tick(uint32_t now)
         break;
     }
     case AERO_FT_WIRELESS:
-        ft_set(AERO_FT_WIRELESS, ble_transport_ready() ? AERO_FT_PASS : AERO_FT_FAIL);
+        ft_set(AERO_FT_WIRELESS, aero_ble_ready() ? AERO_FT_PASS : AERO_FT_FAIL);
         break;
     case AERO_FT_BATTERY: {
         if (!battery_available()) {

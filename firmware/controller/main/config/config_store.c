@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "config/board_config.h"
+#include "esp_check.h"
 #include "esp_log.h"
 #include "nvs.h"
 #include "nvs_flash.h"

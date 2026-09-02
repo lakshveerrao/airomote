@@ -1,4 +1,5 @@
 import { useMemo, useRef, type MutableRefObject } from 'react';
+import { sceneSettings } from '@/features/activity/sceneQuality';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { ControllerId } from '@aero/motion-core';
@@ -204,8 +205,9 @@ function Pick({ controllerId, api }: { controllerId: ControllerId | null; api: M
 }
 
 export function GuitarScene({ api, strumController }: { api: MutableRefObject<GuitarSceneApi>; strumController: ControllerId | null }) {
+  const quality = sceneSettings();
   return (
-    <Canvas shadows camera={{ position: [0.9, -0.15, 3.6], fov: 40 }} dpr={[1, 1.75]} gl={{ antialias: true }} onCreated={({ camera }) => camera.lookAt(0.8, 0, 0)}>
+    <Canvas shadows={quality.shadows} camera={{ position: [0.9, -0.15, 3.6], fov: 40 }} dpr={quality.dpr} gl={{ antialias: quality.antialias }} onCreated={({ camera }) => camera.lookAt(0.8, 0, 0)}>
       <color attach="background" args={['#06070a']} />
       <ambientLight intensity={0.5} />
       <spotLight position={[2, 4, 4]} angle={0.6} penumbra={0.8} intensity={70} color="#f5e9ff" castShadow />

@@ -1,4 +1,5 @@
 import { useMemo, useRef, type MutableRefObject } from 'react';
+import { sceneSettings } from '@/features/activity/sceneQuality';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { ControllerId, ControllerMotionState } from '@aero/motion-core';
@@ -311,8 +312,9 @@ function Stage() {
 }
 
 export function DrumScene({ api, sticks }: { api: MutableRefObject<DrumSceneApi>; sticks: Record<StickRole, ControllerId | null> }) {
+  const quality = sceneSettings();
   return (
-    <Canvas shadows camera={{ position: [0, 2.05, 3.4], fov: 42 }} dpr={[1, 1.75]} gl={{ antialias: true, powerPreference: 'high-performance' }} onCreated={({ camera }) => camera.lookAt(0, 0.95, 0)}>
+    <Canvas shadows={quality.shadows} camera={{ position: [0, 2.05, 3.4], fov: 42 }} dpr={quality.dpr} gl={{ antialias: quality.antialias, powerPreference: 'high-performance' }} onCreated={({ camera }) => camera.lookAt(0, 0.95, 0)}>
       <color attach="background" args={['#06070a']} />
       <Stage />
       {DRUM_SPECS.map((s) => (

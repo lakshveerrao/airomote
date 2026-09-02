@@ -60,7 +60,7 @@ void transport_fill_header(aero_header_t *h)
 
 void transport_send_packet(const uint8_t pkt[AERO_PACKET_SIZE])
 {
-    ble_transport_send(pkt);
+    aero_ble_send(pkt);
     serial_transport_send(pkt);
 }
 
@@ -209,7 +209,7 @@ static void house_task(void *arg)
         uint32_t t = now_ms();
 
         serial_transport_poll();
-        diagnostics_tick(t, ble_transport_connected());
+        diagnostics_tick(t, aero_ble_connected());
         diagnostics_factory_test_tick(t);
 
         if (calibration_take_event()) {
@@ -302,7 +302,7 @@ void app_main(void)
 
     /* 6. Links */
     serial_transport_init(on_serial_packet, on_serial_line);
-    if (ble_transport_init(on_ble_rx) != ESP_OK) app_set_error(AERO_ERR_BLE_INIT_FAILED);
+    if (aero_ble_init(on_ble_rx) != ESP_OK) app_set_error(AERO_ERR_BLE_INIT_FAILED);
 
     /* 7. Tasks */
     s_sample_queue = xQueueCreate(1, sizeof(queued_sample_t));

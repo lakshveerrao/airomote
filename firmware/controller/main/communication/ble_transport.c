@@ -234,7 +234,7 @@ static void tx_task(void *param)
     }
 }
 
-esp_err_t ble_transport_init(ble_rx_handler_t rx_handler)
+esp_err_t aero_ble_init(ble_rx_handler_t rx_handler)
 {
     s_rx_handler = rx_handler;
     s_tx_queue = xQueueCreate(TX_QUEUE_DEPTH, AERO_PACKET_SIZE);
@@ -266,7 +266,7 @@ esp_err_t ble_transport_init(ble_rx_handler_t rx_handler)
     return ESP_OK;
 }
 
-bool ble_transport_send(const uint8_t *pkt32)
+bool aero_ble_send(const uint8_t *pkt32)
 {
     if (!s_tx_queue || !s_subscribed) return false;
     if (xQueueSend(s_tx_queue, pkt32, 0) != pdTRUE) {
@@ -279,11 +279,11 @@ bool ble_transport_send(const uint8_t *pkt32)
     return true;
 }
 
-bool ble_transport_connected(void) { return s_conn_handle != BLE_HS_CONN_HANDLE_NONE; }
-bool ble_transport_subscribed(void) { return s_subscribed; }
-bool ble_transport_ready(void) { return s_ready; }
+bool aero_ble_connected(void) { return s_conn_handle != BLE_HS_CONN_HANDLE_NONE; }
+bool aero_ble_subscribed(void) { return s_subscribed; }
+bool aero_ble_ready(void) { return s_ready; }
 
-void ble_transport_refresh_name(void)
+void aero_ble_refresh_name(void)
 {
     if (!s_ready) return;
     build_name();
@@ -293,7 +293,7 @@ void ble_transport_refresh_name(void)
     }
 }
 
-void ble_transport_stats(uint32_t *sent, uint32_t *dropped, uint16_t *mtu)
+void aero_ble_stats(uint32_t *sent, uint32_t *dropped, uint16_t *mtu)
 {
     if (sent) *sent = s_sent;
     if (dropped) *dropped = s_dropped;

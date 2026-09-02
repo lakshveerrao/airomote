@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { sceneSettings } from '@/features/activity/sceneQuality';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { Race } from '../game/race';
@@ -548,11 +549,12 @@ function Simulation({ driver }: { driver: SceneDriver }) {
 export function KartScene({ driver, accent }: { driver: SceneDriver; accent: string }) {
   const track = driver.race().track;
   const raceForArches = driver.race();
+  const quality = sceneSettings();
   return (
     <Canvas
-      shadows
-      dpr={[1, 1.75]}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
+      shadows={quality.shadows}
+      dpr={quality.dpr}
+      gl={{ antialias: quality.antialias, powerPreference: 'high-performance' }}
       camera={{ fov: 60, near: 0.3, far: 1600, position: [0, 8, 24] }}
       style={{ position: 'absolute', inset: 0 }}
     >

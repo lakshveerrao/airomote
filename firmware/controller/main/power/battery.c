@@ -4,6 +4,7 @@
 #include "power/battery.h"
 
 #include "config/board_config.h"
+#include "esp_check.h"
 #include "esp_log.h"
 
 #if BOARD_HAS_BATTERY_SENSE

@@ -31,7 +31,7 @@ static void set_device_id(uint8_t id)
     g_app.device_id = id;
     g_config.device_id = id;
     config_store_save(&g_config);
-    ble_transport_refresh_name();
+    aero_ble_refresh_name();
     ESP_LOGI(TAG, "device id -> %u", id);
     transport_send_info();
 }
@@ -90,7 +90,8 @@ void command_execute(uint8_t cmd, const uint8_t args[21])
             n++;
         }
         if (n > 0) {
-            strncpy(g_config.name, name, AERO_NAME_MAX);
+            memset(g_config.name, 0, sizeof(g_config.name));
+            memcpy(g_config.name, name, n < sizeof(g_config.name) - 1 ? n : sizeof(g_config.name) - 1);
             config_store_save(&g_config);
             ESP_LOGI(TAG, "name -> '%s'", g_config.name);
         }
@@ -144,7 +145,7 @@ void command_handle_line(const char *line)
         const calibration_t *c = calibration_get();
         uint32_t sent, dropped;
         uint16_t mtu;
-        ble_transport_stats(&sent, &dropped, &mtu);
+        aero_ble_stats(&sent, &dropped, &mtu);
         printf("id=%u name='%s' fw=%d.%d.%d build %d hw=%d\n", g_app.device_id, g_config.name, AERO_FW_MAJOR,
                AERO_FW_MINOR, AERO_FW_PATCH, AERO_FW_BUILD, AERO_HW_REV);
         printf("mac=%02X:%02X:%02X:%02X:%02X:%02X status=0x%02X err=%u mpu=0x%02X sensor=0x%02X\n", g_app.mac[0],
@@ -153,7 +154,7 @@ void command_handle_line(const char *line)
         printf("cal state=%u q=%u gyro_off=(%.2f %.2f %.2f) n=%u\n", c->state, c->quality, c->gyro_offset_dps[0],
                c->gyro_offset_dps[1], c->gyro_offset_dps[2], c->sample_count);
         printf("battery=%u%% %umV  rate=%uHz  ble: conn=%d sub=%d mtu=%u sent=%lu dropped=%lu\n", g_app.battery_pct,
-               g_app.battery_mv, g_app.packet_rate_hz, ble_transport_connected(), ble_transport_subscribed(), mtu,
+               g_app.battery_mv, g_app.packet_rate_hz, aero_ble_connected(), aero_ble_subscribed(), mtu,
                (unsigned long)sent, (unsigned long)dropped);
     } else if (!strcmp(line, "cal")) {
         command_execute(AERO_CMD_RECALIBRATE, args);

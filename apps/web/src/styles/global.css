@@ -333,8 +333,8 @@ h3 {
 }
 .glass {
   background: rgba(12, 14, 20, 0.62);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
@@ -343,9 +343,8 @@ h3 {
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(6, 7, 10, 0.72);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  /* No backdrop blur: blurring a live 3D canvas costs more than the scene itself on integrated GPUs. */
+  background: radial-gradient(120% 80% at 50% 40%, rgba(10, 12, 18, 0.9), rgba(6, 7, 10, 0.96));
   animation: fade-in var(--dur) var(--ease) both;
   z-index: 5;
 }
@@ -358,4 +357,11 @@ h3 {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow);
   animation: fade-up var(--dur-slow) var(--ease-out) both;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.overlay {
+  padding: 16px;
 }

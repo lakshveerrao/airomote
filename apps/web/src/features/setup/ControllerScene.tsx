@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react';
+import { sceneSettings } from '@/features/activity/sceneQuality';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
@@ -106,11 +107,12 @@ export function ControllerScene({ ids, height = 380, labels = true, className }:
   const names = useSettings((s) => s.controllerNames);
   const positions: Array<[number, number, number]> =
     ids.length === 1 ? [[0, 0, 0]] : ids.map((_, i) => [(i === 0 ? -1 : 1) * 1.6, 0, 0]);
+  const quality = sceneSettings();
   return (
     <div className={className} style={{ position: 'relative', height, width: '100%' }}>
       <Canvas
-        shadows
-        dpr={[1, 2]}
+        shadows={quality.shadows}
+        dpr={quality.dpr}
         camera={{ position: [0, 1.6, 5.2], fov: 38 }}
         gl={{ antialias: true, alpha: true }}
         style={{ position: 'absolute', inset: 0 }}
@@ -122,7 +124,7 @@ export function ControllerScene({ ids, height = 380, labels = true, className }:
         {ids.map((id, i) => (
           <ControllerModel key={id} id={id} position={positions[i]} showLabel={labels} />
         ))}
-        <ContactShadows position={[0, -1.2, 0]} opacity={0.55} scale={9} blur={2.6} far={3} color="#000" />
+        <ContactShadows position={[0, -1.2, 0]} opacity={0.55} scale={9} blur={2.6} far={3} color="#000" frames={quality.shadows ? Infinity : 1} />
       </Canvas>
       {labels && (
         <div className="scene-labels" style={{ gridTemplateColumns: `repeat(${ids.length}, 1fr)` }}>

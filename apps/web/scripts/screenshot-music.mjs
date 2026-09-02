@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 
 const [, , which = 'drums', prefix = '/tmp/music', w = '1440', h = '900'] = process.argv;
 const base = process.env.AERO_URL ?? 'http://127.0.0.1:5173';
-const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({ headless: !process.env.HEADED, args: ['--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width: Number(w), height: Number(h) } });
 const errors = [];
 page.on('console', (m) => {

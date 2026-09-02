@@ -18,17 +18,17 @@
 typedef void (*ble_rx_handler_t)(const uint8_t *data, size_t len);
 
 /** Start the host stack, register GATT, begin advertising. Fills g_app.mac. */
-esp_err_t ble_transport_init(ble_rx_handler_t rx_handler);
+esp_err_t aero_ble_init(ble_rx_handler_t rx_handler);
 
 /** Non-blocking enqueue of one 32-byte packet. Returns false if the queue is full / no subscriber. */
-bool ble_transport_send(const uint8_t *pkt32);
+bool aero_ble_send(const uint8_t *pkt32);
 
-bool ble_transport_connected(void);
-bool ble_transport_subscribed(void);
-bool ble_transport_ready(void);
+bool aero_ble_connected(void);
+bool aero_ble_subscribed(void);
+bool aero_ble_ready(void);
 
 /** Re-apply the device name after the device id changed (takes effect on next advertising start). */
-void ble_transport_refresh_name(void);
+void aero_ble_refresh_name(void);
 
 /** Statistics for diagnostics. */
-void ble_transport_stats(uint32_t *sent, uint32_t *dropped, uint16_t *mtu);
+void aero_ble_stats(uint32_t *sent, uint32_t *dropped, uint16_t *mtu);

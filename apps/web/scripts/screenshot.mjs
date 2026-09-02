@@ -9,7 +9,7 @@ import { chromium } from 'playwright';
 const [, , rawPath = '/', out = 'shot.png', w = '1440', h = '900', ...flags] = process.argv;
 const path = rawPath === '.' || rawPath.includes(':') ? '/' : rawPath.startsWith('/') ? rawPath : '/' + rawPath;
 const base = process.env.AERO_URL ?? 'http://127.0.0.1:5173';
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: !process.env.HEADED });
 const page = await browser.newPage({ viewport: { width: Number(w), height: Number(h) } });
 const errors = [];
 page.on('console', (m) => {
