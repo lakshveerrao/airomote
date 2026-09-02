@@ -57,6 +57,11 @@ static esp_err_t attach(uint8_t addr)
 esp_err_t mpu6050_init(void)
 {
     memset(&s_status, 0, sizeof(s_status));
+    if (s_dev) {
+        i2c_master_bus_rm_device(s_dev);
+        s_dev = NULL;
+    }
+    if (!s_bus) {
     i2c_master_bus_config_t bus = {
         .i2c_port = BOARD_I2C_PORT,
         .sda_io_num = BOARD_I2C_SDA_GPIO,
@@ -66,6 +71,7 @@ esp_err_t mpu6050_init(void)
         .flags.enable_internal_pullup = BOARD_I2C_INTERNAL_PULLUPS,
     };
     ESP_RETURN_ON_ERROR(i2c_new_master_bus(&bus, &s_bus), TAG, "i2c bus");
+    }
 
     const uint8_t candidates[2] = {BOARD_MPU_ADDR_PRIMARY, BOARD_MPU_ADDR_FALLBACK};
     for (int i = 0; i < 2; i++) {
@@ -110,6 +116,16 @@ esp_err_t mpu6050_init(void)
     vTaskDelay(pdMS_TO_TICKS(30));
     ESP_LOGI(TAG, "ready at 0x%02X (WHO_AM_I 0x%02X), %d Hz", s_status.address, who, AERO_SENSOR_RATE_HZ);
     return ESP_OK;
+}
+
+size_t mpu6050_scan_bus(uint8_t *found, size_t max)
+{
+    size_t n = 0;
+    if (!s_bus) return 0;
+    for (uint8_t a = 0x08; a < 0x78 && n < max; a++) {
+        if (i2c_master_probe(s_bus, a, 10) == ESP_OK) found[n++] = a;
+    }
+    return n;
 }
 
 esp_err_t mpu6050_read(mpu6050_sample_t *out)

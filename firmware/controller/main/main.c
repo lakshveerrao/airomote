@@ -201,7 +201,7 @@ static void house_task(void *arg)
 {
     (void)arg;
     esp_task_wdt_add(NULL);
-    uint32_t last_info = 0, last_batt = 0;
+    uint32_t last_info = 0, last_batt = 0, last_sensor_retry = 0;
     led_mode_t led = LED_BOOTING;
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -229,6 +229,31 @@ static void house_task(void *arg)
         if (want != led) {
             led = want;
             diagnostics_set_led_mode(led);
+        }
+
+        /* Sensor missing at boot: retry every 3 s and report what answers on the bus over BLE/USB. */
+        if (!s_sensor_ok && t - last_sensor_retry >= 3000) {
+            last_sensor_retry = t;
+            if (mpu6050_init() == ESP_OK) {
+                s_sensor_ok = true;
+                g_app.mpu_addr = mpu6050_status()->address;
+                uint8_t flags = 0;
+                mpu6050_health_check(&flags);
+                g_app.sensor_flags = flags;
+                app_set_status(AERO_STATUS_SENSOR_OK, (flags & 0x01) != 0);
+                app_set_error(AERO_ERR_NONE);
+                calibration_begin();
+                transport_send_log(AERO_LOG_INFO, "mpu found, calibrating");
+                transport_send_info();
+            } else {
+                uint8_t found[4];
+                size_t n = mpu6050_scan_bus(found, 4);
+                char msg[21];
+                if (n == 0) snprintf(msg, sizeof(msg), "i2c %u/%u: nothing", (unsigned)BOARD_I2C_SDA_GPIO % 100u, (unsigned)BOARD_I2C_SCL_GPIO % 100u);
+                else if (n == 1) snprintf(msg, sizeof(msg), "i2c dev 0x%02X only", found[0]);
+                else snprintf(msg, sizeof(msg), "i2c 0x%02X 0x%02X +%u", found[0], found[1], (unsigned)(n - 2) % 10u);
+                transport_send_log(AERO_LOG_WARN, msg);
+            }
         }
 
         if (t - last_batt >= 5000) {
