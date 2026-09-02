@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dev-dist/
+*.log
+.pio/
+firmware/controller/.pio/
+firmware/controller/sdkconfig.*
+!firmware/controller/sdkconfig.defaults
+.vscode/
+.DS_Store
+coverage/
+*.tsbuildinfo

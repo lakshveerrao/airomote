@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/protocol" },
+    { "path": "packages/motion-core" },
+    { "path": "packages/activity-engine" },
+    { "path": "packages/music-engine" },
+    { "path": "apps/web" }
+  ]
+}

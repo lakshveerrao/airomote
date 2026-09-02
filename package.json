@@ -1,0 +1,28 @@
+{
+  "name": "aero-motion",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Aero — two-controller motion platform: games, music and workout in one web app with ESP32-C6 + MPU6050 controllers",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @aero/web",
+    "build": "npm run build -w @aero/web",
+    "preview": "npm run preview -w @aero/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b",
+    "firmware:build": "python -m platformio run -d firmware/controller",
+    "firmware:flash": "python -m platformio run -d firmware/controller -t upload",
+    "firmware:monitor": "python -m platformio device monitor -d firmware/controller -b 115200"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "jsdom": "^26.0.0",
+    "playwright": "^1.62.1",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

@@ -1,0 +1,106 @@
+.shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.shell__nav {
+  height: var(--nav-h);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 var(--page-pad);
+  border-bottom: 1px solid var(--border);
+  background: rgba(11, 13, 18, 0.7);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  position: relative;
+  z-index: 10;
+}
+.shell__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+.shell__logo-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: conic-gradient(from 210deg, var(--games), var(--music), var(--workout), var(--games));
+  box-shadow: inset 0 0 0 6px var(--bg);
+}
+.shell__links {
+  display: flex;
+  gap: 4px;
+  margin-left: 16px;
+}
+.shell__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 15px;
+  transition:
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.shell__link:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+.shell__link--on {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+.shell__status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shell__settings {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-dim);
+  transition:
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    transform var(--dur-slow) var(--ease);
+}
+.shell__settings:hover {
+  color: var(--text);
+  background: var(--surface);
+  transform: rotate(30deg);
+}
+.shell__settings--on {
+  color: var(--text);
+}
+.pill__state {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+@media (max-width: 1100px) {
+  .pill__state {
+    display: none;
+  }
+}
+@media (max-width: 860px) {
+  .shell__link span,
+  .pill__name {
+    display: none;
+  }
+  .shell__link {
+    padding: 0 12px;
+  }
+}
