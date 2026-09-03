@@ -13,10 +13,12 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "host/ble_hs.h"
+void ble_store_config_init(void); /* nimble store/config (header not exported in this IDF) */
 #include "host/util/util.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "services/gap/ble_svc_gap.h"
+#include "services/dis/ble_svc_dis.h"
 #include "services/gatt/ble_svc_gatt.h"
 
 static const char *TAG = "ble";
@@ -91,6 +93,16 @@ static int gap_event(struct ble_gap_event *event, void *arg)
 {
     (void)arg;
     switch (event->type) {
+    case BLE_GAP_EVENT_REPEAT_PAIRING: {
+        /* Host forgot us (Windows "Remove device"): drop the stale bond and let it pair again. */
+        struct ble_gap_conn_desc desc;
+        if (ble_gap_conn_find(event->repeat_pairing.conn_handle, &desc) == 0)
+            ble_store_util_delete_peer(&desc.peer_id_addr);
+        return BLE_GAP_REPEAT_PAIRING_RETRY;
+    }
+    case BLE_GAP_EVENT_ENC_CHANGE:
+        ESP_LOGI(TAG, "encryption %s", event->enc_change.status == 0 ? "on" : "failed");
+        return 0;
     case BLE_GAP_EVENT_CONNECT:
         if (event->connect.status == 0) {
             s_conn_handle = event->connect.conn_handle;
@@ -139,18 +151,23 @@ static int gap_event(struct ble_gap_event *event, void *arg)
 
 static void start_advertising(void)
 {
+    /* Name + appearance in the primary advertisement so passive scanners (Windows / Android
+     * system Bluetooth lists) show the device; the 128-bit service UUID goes in the scan
+     * response, which Chrome's active scan still sees for its service filter. */
     struct ble_hs_adv_fields fields = {0};
     fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-    fields.uuids128 = &s_svc_uuid;
-    fields.num_uuids128 = 1;
-    fields.uuids128_is_complete = 1;
+    fields.name = (uint8_t *)s_name;
+    fields.name_len = strlen(s_name);
+    fields.name_is_complete = 1;
+    fields.appearance = 0x03C4; /* HID: Gamepad — Windows/Android list it as a game controller */
+    fields.appearance_is_present = 1;
     int rc = ble_gap_adv_set_fields(&fields);
     if (rc != 0) ESP_LOGE(TAG, "adv_set_fields rc=%d", rc);
 
     struct ble_hs_adv_fields rsp = {0};
-    rsp.name = (uint8_t *)s_name;
-    rsp.name_len = strlen(s_name);
-    rsp.name_is_complete = 1;
+    rsp.uuids128 = &s_svc_uuid;
+    rsp.num_uuids128 = 1;
+    rsp.uuids128_is_complete = 1;
     rc = ble_gap_adv_rsp_set_fields(&rsp);
     if (rc != 0) ESP_LOGE(TAG, "adv_rsp_set_fields rc=%d", rc);
 
@@ -247,11 +264,30 @@ esp_err_t aero_ble_init(ble_rx_handler_t rx_handler)
     }
     ble_hs_cfg.sync_cb = on_sync;
     ble_hs_cfg.reset_cb = on_reset;
+    /* Just-Works pairing so the OS Bluetooth settings can pair/bond the controller. */
     ble_hs_cfg.sm_io_cap = BLE_SM_IO_CAP_NO_IO;
-    ble_hs_cfg.sm_bonding = 0;
+    ble_hs_cfg.sm_bonding = 1;
+    ble_hs_cfg.sm_mitm = 0;
+    ble_hs_cfg.sm_sc = 1;
+    ble_hs_cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
+    ble_hs_cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
+    ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
 
     ble_svc_gap_init();
+    ble_svc_gap_device_appearance_set(0x03C4);
     ble_svc_gatt_init();
+    /* Device Information Service: what the OS Bluetooth settings show after pairing. */
+    ble_svc_dis_init();
+    ble_svc_dis_manufacturer_name_set("AiroMote");
+    ble_svc_dis_model_number_set("AiroMote Motion Controller");
+    {
+        static char fw[16];
+        snprintf(fw, sizeof(fw), "%d.%d.%d", AERO_FW_MAJOR, AERO_FW_MINOR, AERO_FW_PATCH);
+        ble_svc_dis_firmware_revision_set(fw);
+        static char hw[8];
+        snprintf(hw, sizeof(hw), "rev%d", AERO_HW_REV);
+        ble_svc_dis_hardware_revision_set(hw);
+    }
     int rc = ble_gatts_count_cfg(s_gatt_svcs);
     if (rc != 0) return ESP_FAIL;
     rc = ble_gatts_add_svcs(s_gatt_svcs);
@@ -260,6 +296,7 @@ esp_err_t aero_ble_init(ble_rx_handler_t rx_handler)
     snprintf(s_name, sizeof(s_name), "AiroMote-%u", g_app.device_id);
     ble_svc_gap_device_name_set(s_name);
 
+    ble_store_config_init();
     nimble_port_freertos_init(host_task);
     xTaskCreate(tx_task, "ble_tx", 4096, NULL, 6, NULL);
     ESP_LOGI(TAG, "NimBLE started");
