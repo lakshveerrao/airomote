@@ -101,8 +101,10 @@ activity: Pause → Re-centre.
 - **Drums** (Music): two controllers are sticks. Turn a stick to aim — the target drum lights
   up (hi-hat, snare, toms, floor; raise the stick for crash/ride) — flick down to hit. Hit
   harder for louder. Forward jab = kick. Both sticks are independent.
-- **Guitar** (Music): Controller 1 is the fret hand: tilt left C, right G, forward Am, back F,
-  turn left Em, right D. Controller 2 strums: swing down / up; harder = louder; shake to mute.
+- **Guitar** (Music): a concert stage seen from the crowd — pick your guitar on the intro screen
+  (Les Paul, Strat, SG, Flying V, Acoustic). Controller 1 is the fret hand: tilt left C, right G,
+  forward Am, back F, turn left Em, right D. Controller 2 strums: swing down / up; harder =
+  louder; shake to mute. The guitarist, drummer and crowd react to your playing.
 - **Squats** (Workout): hold one controller against your chest. Stand still 1.5 s, then squat.
   Reps count only for STANDING → DESCENDING → BOTTOM → ASCENDING → STANDING with enough depth
   and a plausible duration. Live reps, timer, phase, rhythm hint; summary with average rep

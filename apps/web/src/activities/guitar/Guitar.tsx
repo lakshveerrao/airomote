@@ -6,6 +6,7 @@ import { ActivityChrome, useActivityFlow } from '@/features/activity/ActivityChr
 import { audioEngine, useAudioUnlock } from '@/features/music/audio';
 import { Kbd } from '@/ui';
 import { GuitarScene, createGuitarSceneApi } from './GuitarScene';
+import { GUITAR_MODELS, loadGuitarModel, saveGuitarModel, type GuitarModelId } from './guitars';
 import './guitar.css';
 
 const isChord = (z: unknown): z is ChordName => typeof z === 'string' && (CHORD_NAMES as string[]).includes(z);
@@ -80,6 +81,11 @@ export default function Guitar({ definition }: ActivityComponentProps) {
   const [last, setLast] = useState<{ dir: StrumDirection; v: number; at: number } | null>(null);
   const [count, setCount] = useState(0);
   const [muted, setMuted] = useState(0);
+  const [model, setModel] = useState<GuitarModelId>(() => loadGuitarModel());
+  const pickModel = useCallback((id: GuitarModelId) => {
+    setModel(id);
+    saveGuitarModel(id);
+  }, []);
 
   useEffect(() => {
     if (running) {
@@ -114,7 +120,7 @@ export default function Guitar({ definition }: ActivityComponentProps) {
         const dir: StrumDirection = e.action === 'STRUM_DOWN' ? 'down' : 'up';
         const v = Math.max(0.05, e.intensity);
         const ev = guitar.strum(api.current.chord, dir, v);
-        api.current.strums.push({ direction: dir, velocity: v, times: ev.times, consumed: false });
+        api.current.strums.push({ direction: dir, velocity: v, times: ev.times, at: performance.now(), consumed: false });
         if (api.current.strums.length > 12) api.current.strums.splice(0, api.current.strums.length - 12);
         setLast({ dir, v, at: performance.now() });
         setCount((c) => c + 1);
@@ -149,6 +155,18 @@ export default function Guitar({ definition }: ActivityComponentProps) {
       flow={flow}
       intro={
         <div className="guitar-intro">
+          <div className="guitar-picker" style={{ '--accent': definition.accent } as React.CSSProperties}>
+            <div className="hud-label">Your guitar</div>
+            <div className="guitar-picker__row" role="radiogroup" aria-label="Guitar">
+              {GUITAR_MODELS.map((m) => (
+                <button key={m.id} role="radio" aria-checked={m.id === model} className={`guitar-card ${m.id === model ? 'guitar-card--on' : ''}`} onClick={() => pickModel(m.id)}>
+                  <span className="guitar-card__swatch" style={{ background: m.swatch }} />
+                  <span className="guitar-card__name">{m.name}</span>
+                  <span className="guitar-card__sub">{m.subtitle}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <GestureCompass current={chord} accent={definition.accent} />
           <p className="faint" style={{ fontSize: 13, marginTop: 10 }}>
             Testing: <Kbd>1</Kbd>–<Kbd>6</Kbd> chords · <Kbd>Q</Kbd>/<Kbd>↓</Kbd> strum down · <Kbd>E</Kbd>/<Kbd>↑</Kbd> strum up · <Kbd>M</Kbd> mute
@@ -193,7 +211,7 @@ export default function Guitar({ definition }: ActivityComponentProps) {
         </>
       }
     >
-      <GuitarScene api={api} strumController={session.roles.strum ?? null} />
+      <GuitarScene api={api} strumController={session.roles.strum ?? null} fretController={session.roles.fret ?? null} model={model} />
     </ActivityChrome>
   );
 }
