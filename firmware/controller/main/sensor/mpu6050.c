@@ -139,8 +139,19 @@ static bool probe_pair(int sda, int scl)
         .flags.enable_internal_pullup = 1,
     };
     if (i2c_new_master_bus(&cfg, &bus) != ESP_OK) return false;
-    bool hit = i2c_master_probe(bus, BOARD_MPU_ADDR_PRIMARY, 5) == ESP_OK ||
-               i2c_master_probe(bus, BOARD_MPU_ADDR_FALLBACK, 5) == ESP_OK;
+    /* A stuck-low SDA line ACKs every address, so an ACK alone is not proof: require a sane WHO_AM_I. */
+    bool hit = false;
+    const uint8_t addrs[2] = {BOARD_MPU_ADDR_PRIMARY, BOARD_MPU_ADDR_FALLBACK};
+    for (int k = 0; k < 2 && !hit; k++) {
+        if (i2c_master_probe(bus, addrs[k], 5) != ESP_OK) continue;
+        i2c_master_dev_handle_t dev = NULL;
+        i2c_device_config_t dc = {.dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = addrs[k], .scl_speed_hz = 100000};
+        if (i2c_master_bus_add_device(bus, &dc, &dev) != ESP_OK) continue;
+        uint8_t reg = REG_WHO_AM_I, who = 0;
+        if (i2c_master_transmit_receive(dev, &reg, 1, &who, 1, 20) == ESP_OK)
+            hit = (who == 0x68 || who == 0x69 || who == 0x70 || who == 0x71 || who == 0x72 || who == 0x73 || who == 0x98);
+        i2c_master_bus_rm_device(dev);
+    }
     i2c_del_master_bus(bus);
     return hit;
 }
