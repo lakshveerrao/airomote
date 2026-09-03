@@ -1,0 +1,7 @@
+firmware/
+docs/
+tests/
+.pio/
+*.png
+*.jsonl
+.tmp*
