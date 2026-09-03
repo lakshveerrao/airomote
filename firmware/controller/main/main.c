@@ -251,7 +251,7 @@ static void house_task(void *arg)
                 mpu6050_health_check(&flags);
                 g_app.sensor_flags = flags;
                 app_set_status(AERO_STATUS_SENSOR_OK, (flags & 0x01) != 0);
-                app_set_error(AERO_ERR_NONE);
+                app_clear_error();
                 calibration_begin();
                 transport_send_log(AERO_LOG_INFO, "mpu found, calibrating");
                 transport_send_info();

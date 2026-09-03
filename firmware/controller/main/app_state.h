@@ -37,3 +37,10 @@ static inline void app_set_error(uint8_t code)
     if (g_app.error_code == AERO_ERR_NONE) g_app.error_code = code;
     app_set_status(AERO_STATUS_ERROR, true);
 }
+
+/** Clear the error (e.g. sensor found on a later retry). */
+static inline void app_clear_error(void)
+{
+    g_app.error_code = AERO_ERR_NONE;
+    app_set_status(AERO_STATUS_ERROR, false);
+}
