@@ -234,7 +234,17 @@ static void house_task(void *arg)
         /* Sensor missing at boot: retry every 3 s and report what answers on the bus over BLE/USB. */
         if (!s_sensor_ok && t - last_sensor_retry >= 3000) {
             last_sensor_retry = t;
-            if (mpu6050_init() == ESP_OK) {
+            esp_err_t sr = mpu6050_init();
+            if (sr != ESP_OK) {
+                int sda, scl;
+                if (mpu6050_autodetect_pins(&sda, &scl)) {
+                    char found_msg[21];
+                    snprintf(found_msg, sizeof(found_msg), "mpu @ sda%02d scl%02d", sda % 100, scl % 100);
+                    transport_send_log(AERO_LOG_INFO, found_msg);
+                    sr = mpu6050_init();
+                }
+            }
+            if (sr == ESP_OK) {
                 s_sensor_ok = true;
                 g_app.mpu_addr = mpu6050_status()->address;
                 uint8_t flags = 0;
@@ -249,7 +259,7 @@ static void house_task(void *arg)
                 uint8_t found[4];
                 size_t n = mpu6050_scan_bus(found, 4);
                 char msg[21];
-                if (n == 0) snprintf(msg, sizeof(msg), "i2c %u/%u: nothing", (unsigned)BOARD_I2C_SDA_GPIO % 100u, (unsigned)BOARD_I2C_SCL_GPIO % 100u);
+                if (n == 0) { int ps, pc; mpu6050_pins(&ps, &pc); snprintf(msg, sizeof(msg), "i2c %02d/%02d: nothing", ps % 100, pc % 100); }
                 else if (n == 1) snprintf(msg, sizeof(msg), "i2c dev 0x%02X only", found[0]);
                 else snprintf(msg, sizeof(msg), "i2c 0x%02X 0x%02X +%u", found[0], found[1], (unsigned)(n - 2) % 10u);
                 transport_send_log(AERO_LOG_WARN, msg);

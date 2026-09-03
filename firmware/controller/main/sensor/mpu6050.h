@@ -37,6 +37,12 @@ esp_err_t mpu6050_read(mpu6050_sample_t *out);
 /** Probe every 7-bit address on the bus; returns how many responded (for wiring diagnostics). */
 size_t mpu6050_scan_bus(uint8_t *found, size_t max);
 
+/** Sweep all free GPIO pairs for an MPU6050; on success the found pins are used by mpu6050_init(). Takes a few seconds. */
+bool mpu6050_autodetect_pins(int *sda_out, int *scl_out);
+
+/** Pins currently used for the sensor bus. */
+void mpu6050_pins(int *sda, int *scl);
+
 /**
  * Health check: WHO_AM_I readable, accel magnitude plausible (0.5–1.5 g while at rest),
  * gyro not saturated. Fills flags bit0 whoami, bit1 accel, bit2 gyro.

@@ -10,6 +10,7 @@
 #include "driver/i2c_master.h"
 #include "esp_check.h"
 #include "esp_log.h"
+#include "esp_task_wdt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -32,6 +33,8 @@ static const char *TAG = "mpu6050";
 static i2c_master_bus_handle_t s_bus;
 static i2c_master_dev_handle_t s_dev;
 static mpu6050_status_t s_status;
+static int s_sda = BOARD_I2C_SDA_GPIO;
+static int s_scl = BOARD_I2C_SCL_GPIO;
 
 static esp_err_t write_reg(uint8_t reg, uint8_t val)
 {
@@ -64,8 +67,8 @@ esp_err_t mpu6050_init(void)
     if (!s_bus) {
     i2c_master_bus_config_t bus = {
         .i2c_port = BOARD_I2C_PORT,
-        .sda_io_num = BOARD_I2C_SDA_GPIO,
-        .scl_io_num = BOARD_I2C_SCL_GPIO,
+        .sda_io_num = s_sda,
+        .scl_io_num = s_scl,
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = BOARD_I2C_INTERNAL_PULLUPS,
@@ -116,6 +119,55 @@ esp_err_t mpu6050_init(void)
     vTaskDelay(pdMS_TO_TICKS(30));
     ESP_LOGI(TAG, "ready at 0x%02X (WHO_AM_I 0x%02X), %d Hz", s_status.address, who, AERO_SENSOR_RATE_HZ);
     return ESP_OK;
+}
+
+void mpu6050_pins(int *sda, int *scl)
+{
+    if (sda) *sda = s_sda;
+    if (scl) *scl = s_scl;
+}
+
+static bool probe_pair(int sda, int scl)
+{
+    i2c_master_bus_handle_t bus = NULL;
+    i2c_master_bus_config_t cfg = {
+        .i2c_port = BOARD_I2C_PORT,
+        .sda_io_num = sda,
+        .scl_io_num = scl,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = 1,
+    };
+    if (i2c_new_master_bus(&cfg, &bus) != ESP_OK) return false;
+    bool hit = i2c_master_probe(bus, BOARD_MPU_ADDR_PRIMARY, 5) == ESP_OK ||
+               i2c_master_probe(bus, BOARD_MPU_ADDR_FALLBACK, 5) == ESP_OK;
+    i2c_del_master_bus(bus);
+    return hit;
+}
+
+bool mpu6050_autodetect_pins(int *sda_out, int *scl_out)
+{
+    /* Free GPIOs on ESP32-C6 (excludes USB 12/13, straps 8/9/15, flash 24+). */
+    static const int cand[] = {0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 14, 16, 17, 18, 19, 20, 21, 22, 23};
+    const int n = sizeof(cand) / sizeof(cand[0]);
+    if (s_dev) { i2c_master_bus_rm_device(s_dev); s_dev = NULL; }
+    if (s_bus) { i2c_del_master_bus(s_bus); s_bus = NULL; }
+    for (int i = 0; i < n; i++) {
+        esp_task_wdt_reset();
+        for (int j = 0; j < n; j++) {
+            if (i == j) continue;
+            if (probe_pair(cand[i], cand[j])) {
+                s_sda = cand[i];
+                s_scl = cand[j];
+                if (sda_out) *sda_out = s_sda;
+                if (scl_out) *scl_out = s_scl;
+                ESP_LOGW(TAG, "MPU6050 found on SDA=%d SCL=%d (board_config says %d/%d)", s_sda, s_scl,
+                         BOARD_I2C_SDA_GPIO, BOARD_I2C_SCL_GPIO);
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 size_t mpu6050_scan_bus(uint8_t *found, size_t max)

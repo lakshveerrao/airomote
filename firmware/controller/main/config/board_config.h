@@ -34,8 +34,8 @@
  * TODO(board): confirm SDA/SCL GPIOs and that 4.7k pull-ups exist on the board.
  * ------------------------------------------------------------------------- */
 #define BOARD_I2C_PORT        (-1)          /* -1 = auto-select an I2C controller */
-#define BOARD_I2C_SDA_GPIO       GPIO_NUM_16  /* verified: user wiring */
-#define BOARD_I2C_SCL_GPIO       GPIO_NUM_17  /* verified: user wiring */
+#define BOARD_I2C_SDA_GPIO       GPIO_NUM_4   /* verified: user wiring */
+#define BOARD_I2C_SCL_GPIO       GPIO_NUM_5   /* verified: user wiring */
 #define BOARD_I2C_FREQ_HZ     400000
 #define BOARD_I2C_INTERNAL_PULLUPS 1        /* set 0 when the board has external pull-ups */
 
