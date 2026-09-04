@@ -19,6 +19,12 @@
   --workout-soft: rgba(61, 220, 151, 0.18);
   --accent: #6ea8ff;
   --accent-soft: rgba(110, 168, 255, 0.18);
+  /* AiroMote device green — the real prototype colour, used as the brand accent */
+  --brand: #3fc457;
+  --brand-bright: #57d96e;
+  --brand-deep: #1f8a37;
+  --brand-soft: rgba(63, 196, 87, 0.16);
+  --brand-line: rgba(63, 196, 87, 0.4);
   --danger: #ff5c6c;
   --warning: #ffc857;
   --ok: #3ddc97;

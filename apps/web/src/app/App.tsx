@@ -8,7 +8,7 @@ import { Spinner } from '@/ui';
 import { useAutoReconnect } from '@/features/setup/useAutoReconnect';
 import '@/styles/global.css';
 
-const HomePage = lazy(() => import('@/features/home/HomePage'));
+const Landing = lazy(() => import('@/features/home/Landing'));
 const SetupPage = lazy(() => import('@/features/setup/SetupPage'));
 const CategoryPage = lazy(() => import('@/features/home/CategoryPage'));
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage'));
@@ -44,7 +44,7 @@ function ActivityRoute() {
 function FirstRunGate({ children }: { children: React.ReactNode }) {
   const setupComplete = useSettings((s) => s.setupComplete);
   const location = useLocation();
-  if (!setupComplete && location.pathname !== '/setup' && !location.pathname.startsWith('/settings')) {
+  if (!setupComplete && location.pathname !== '/' && location.pathname !== '/setup' && !location.pathname.startsWith('/settings')) {
     return <Navigate to="/setup" replace />;
   }
   return <>{children}</>;
@@ -55,6 +55,7 @@ export default function App() {
   return (
     <FirstRunGate>
       <Routes>
+        <Route path="/" element={<Suspense fallback={<Loading />}><Landing /></Suspense>} />
         <Route path="/setup" element={<Suspense fallback={<Loading />}><SetupPage /></Suspense>} />
         <Route path="/games/:activityId" element={<ActivityRoute />} />
         <Route path="/music/:activityId" element={<ActivityRoute />} />
@@ -69,7 +70,6 @@ export default function App() {
             </AppShell>
           }
         >
-          <Route path="/" element={<HomePage />} />
           <Route path="/games" element={<CategoryPage category="games" />} />
           <Route path="/music" element={<CategoryPage category="music" />} />
           <Route path="/workout" element={<CategoryPage category="workout" />} />
