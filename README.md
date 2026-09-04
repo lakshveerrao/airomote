@@ -94,10 +94,12 @@ activity: Pause → Re-centre.
 
 ## Using the five experiences
 
-- **Motion Kart** (Games): hold a controller like a wheel. Tilt left/right to steer, tip
-  forward to accelerate, back to brake, shake to boost. Presets: Motion Steering (one
-  controller), Dual Controller (1 steers, 2 is the throttle), Gesture Steering (rotate like a
-  dial), Keyboard (testing). Sensitivity Low/Normal/High. 3 laps, 3 opponents, lap times.
+- **Motion Kart** (Games): a full 3D arcade circuit with grandstands, crowds, trackside
+  banners, kerbed bends and boost flames. Pick a track on the intro screen (Meadow Circuit or
+  Canyon Run). Hold a controller like a wheel. Tilt left/right to steer, tip forward to
+  accelerate, back to brake, shake to boost. Presets: Motion Steering (one controller), Dual
+  Controller (1 steers, 2 is the throttle), Gesture Steering (rotate like a dial), Keyboard
+  (testing). Sensitivity Low/Normal/High. 3 laps, 3 opponents, lap times.
 - **Drums** (Music): two controllers are sticks. Turn a stick to aim — the target drum lights
   up (hi-hat, snare, toms, floor; raise the stick for crash/ride) — flick down to hit. Hit
   harder for louder. Forward jab = kick. Both sticks are independent.

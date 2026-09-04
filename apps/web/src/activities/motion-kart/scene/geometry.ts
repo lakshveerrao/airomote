@@ -7,7 +7,7 @@ export function ribbonGeometry(
   a: number,
   b: number,
   y: number,
-  opts: { every?: number; dashOn?: number; dashPeriod?: number; colorFn?: (i: number) => [number, number, number] } = {},
+  opts: { every?: number; dashOn?: number; dashPeriod?: number; colorFn?: (i: number) => [number, number, number]; include?: (i: number) => boolean; uvScale?: number } = {},
 ): THREE.BufferGeometry {
   const every = opts.every ?? 1;
   const samples = track.samples;
@@ -21,6 +21,7 @@ export function ribbonGeometry(
   for (let i = 0; i < n; i += every) {
     const inDash = opts.dashPeriod ? i % opts.dashPeriod < (opts.dashOn ?? opts.dashPeriod / 2) : true;
     if (!inDash) continue;
+    if (opts.include && !opts.include(i)) continue;
     const s0 = samples[i];
     const s1 = samples[(i + every) % n];
     const pts = [s0, s1];
@@ -28,7 +29,8 @@ export function ribbonGeometry(
       const nx = p.tz;
       const nz = -p.tx;
       positions.push(p.x + nx * a, y, p.z + nz * a, p.x + nx * b, y, p.z + nz * b);
-      uvs.push(0, p.s / (b - a || 1), 1, p.s / (b - a || 1));
+      const v = p.s / (opts.uvScale ?? (b - a || 1));
+      uvs.push(0, v, 1, v);
       if (useColor) {
         const c = opts.colorFn!(i);
         colors.push(...c, ...c);

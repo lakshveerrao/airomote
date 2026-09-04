@@ -8,6 +8,7 @@ import { Race, formatRaceTime, ordinal } from './game/race';
 import { TrackModel } from './game/track';
 import type { KartInput } from './game/kart';
 import { KartScene, type SceneDriver } from './scene/KartScene';
+import { KART_THEMES, loadKartTheme, saveKartTheme, type KartThemeId } from './scene/themes';
 import { EngineSound } from './scene/EngineSound';
 import './kart.css';
 
@@ -60,6 +61,11 @@ export default function MotionKart({ definition }: ActivityComponentProps) {
   const arcEl = useRef<SVGPathElement>(null);
   const linesEl = useRef<HTMLDivElement>(null);
   const [summary, setSummary] = useState<{ total: number; best: number | null; position: number; laps: number[] } | null>(null);
+  const [themeId, setThemeId] = useState<KartThemeId>(() => loadKartTheme());
+  const pickTheme = useCallback((id: KartThemeId) => {
+    setThemeId(id);
+    saveKartTheme(id);
+  }, []);
 
   runningRef.current = flow.phase === 'running';
   showcaseRef.current = !startedRef.current && flow.phase === 'intro';
@@ -198,6 +204,18 @@ export default function MotionKart({ definition }: ActivityComponentProps) {
       }}
       intro={
         <>
+          <div className="kart-tracks" style={{ '--accent': definition.accent } as React.CSSProperties}>
+            <div className="hud-label">Track</div>
+            <div className="kart-tracks__row" role="radiogroup" aria-label="Track">
+              {KART_THEMES.map((t) => (
+                <button key={t.id} role="radio" aria-checked={t.id === themeId} className={`kart-track-card ${t.id === themeId ? 'kart-track-card--on' : ''}`} onClick={() => pickTheme(t.id)}>
+                  <span className="kart-track-card__swatch" style={{ background: t.swatch }} />
+                  <span className="kart-track-card__name">{t.name}</span>
+                  <span className="kart-track-card__sub">{t.subtitle}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <PresetPicker def={definition} session={session} />
           <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}>
             <Button size="sm" variant="ghost" onClick={() => session.session.recentre()}>
@@ -297,7 +315,7 @@ export default function MotionKart({ definition }: ActivityComponentProps) {
         )
       }
     >
-      <KartScene driver={driver} accent={definition.accent} />
+      <KartScene key={themeId} driver={driver} accent={definition.accent} themeId={themeId} />
       <div className="kart-speedlines" ref={linesEl} />
       {flow.phase === 'running' && (
         <div className="kart-center">
