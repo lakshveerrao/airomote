@@ -261,65 +261,232 @@ function HitBursts({ api }: { api: MutableRefObject<DrumSceneApi> }) {
   );
 }
 
-function Stick({ role, controllerId, api }: { role: StickRole; controllerId: ControllerId | null; api: MutableRefObject<DrumSceneApi> }) {
-  const motion = useMotionRef(controllerId ?? 1);
-  const pivot = useRef<THREE.Group>(null!);
-  const smooth = useRef({ pitch: 0, yaw: 0 });
-  const dip = useRef(0);
-  const x = role === 'stick1' ? -0.42 : 0.42;
-  useFrame((_, dt) => {
+/* pose a unit-length +Y cylinder between two points */
+const _up = new THREE.Vector3(0, 1, 0);
+const _d = new THREE.Vector3();
+const _q = new THREE.Quaternion();
+function poseLimb(mesh: THREE.Mesh | null, from: THREE.Vector3, to: THREE.Vector3) {
+  if (!mesh) return;
+  _d.subVectors(to, from);
+  const len = _d.length() || 1e-3;
+  mesh.position.copy(from).addScaledVector(_d, 0.5);
+  mesh.quaternion.copy(_q.setFromUnitVectors(_up, _d.normalize()));
+  mesh.scale.set(1, len, 1);
+}
+
+const SKIN = '#c79a72';
+const SKIN_DARK = '#9a6f4c';
+
+/**
+ * The drummer seen from behind: sleeveless torso, head, and two arms whose raised sticks
+ * follow the stick controllers and strike down on a hit. Aiming/target logic is unchanged.
+ */
+function Drummer({ sticks, api }: { sticks: Record<StickRole, ControllerId | null>; api: MutableRefObject<DrumSceneApi> }) {
+  const body = useRef<THREE.Group>(null!);
+  const head = useRef<THREE.Group>(null!);
+
+  const motion1 = useMotionRef(sticks.stick1 ?? 1);
+  const motion2 = useMotionRef(sticks.stick2 ?? 2);
+  const upperL = useRef<THREE.Mesh>(null);
+  const foreL = useRef<THREE.Mesh>(null);
+  const upperR = useRef<THREE.Mesh>(null);
+  const foreR = useRef<THREE.Mesh>(null);
+  const handL = useRef<THREE.Group>(null!);
+  const handR = useRef<THREE.Group>(null!);
+
+  const smooth = useRef({ stick1: { pitch: 0, yaw: 0 }, stick2: { pitch: 0, yaw: 0 } });
+  const dip = useRef({ stick1: 0, stick2: 0 });
+  const v = useMemo(() => ({ sh: new THREE.Vector3(), hand: new THREE.Vector3(), elb: new THREE.Vector3(), tip: new THREE.Vector3() }), []);
+
+  // shoulders in body-local space (body faces -z, camera behind at +z)
+  const SHOULDER = { stick1: new THREE.Vector3(-0.34, 1.42, 1.62), stick2: new THREE.Vector3(0.34, 1.42, 1.62) };
+
+  const poseArm = (
+    role: StickRole,
+    controllerId: ControllerId | null,
+    motion: React.MutableRefObject<ControllerMotionState>,
+    upper: React.RefObject<THREE.Mesh | null>,
+    fore: React.RefObject<THREE.Mesh | null>,
+    hand: React.RefObject<THREE.Group | null>,
+    dt: number,
+    t: number,
+  ) => {
     const a = api.current;
     const s: ControllerMotionState | null = controllerId ? motion.current : null;
+    const sideX = role === 'stick1' ? -1 : 1;
     let pitch = 0;
     let yaw = 0;
     if (s && s.connected) {
       pitch = THREE.MathUtils.clamp(s.relative.pitch, -70, 70);
       yaw = THREE.MathUtils.clamp(s.relative.yaw, -80, 80);
     } else {
-      const t = DRUM_SPECS.find((d) => d.id === a.target[role]);
-      if (t) {
-        yaw = -Math.atan2(t.pos[0] - x, 1.4 - t.pos[2]) * (180 / Math.PI);
-        pitch = (t.pos[1] - 1.25) * 40;
+      const target = DRUM_SPECS.find((d) => d.id === a.target[role]);
+      if (target) {
+        yaw = -Math.atan2(target.pos[0] - sideX * 0.34, 1.4 - target.pos[2]) * (180 / Math.PI);
+        pitch = (target.pos[1] - 1.25) * 40;
       }
     }
-    const k = Math.min(1, dt * 22);
-    smooth.current.pitch += (pitch - smooth.current.pitch) * k;
-    smooth.current.yaw += (yaw - smooth.current.yaw) * k;
-    dip.current += (a.stickDip[role] - dip.current) * Math.min(1, dt * 30);
+    const sm = smooth.current[role];
+    const k = Math.min(1, dt * 20);
+    sm.pitch += (pitch - sm.pitch) * k;
+    sm.yaw += (yaw - sm.yaw) * k;
+    dip.current[role] += (a.stickDip[role] - dip.current[role]) * Math.min(1, dt * 30);
     a.stickDip[role] *= Math.exp(-dt * 10);
-    const g = pivot.current;
-    g.rotation.x = THREE.MathUtils.degToRad(smooth.current.pitch) - dip.current * 0.7;
-    g.rotation.y = THREE.MathUtils.degToRad(smooth.current.yaw);
+
+    // idle raise: between hits the hand lifts, giving the arms-up hero pose
+    const sinceHit = (performance.now() - a.lastHitAt) / 1000;
+    const raise = THREE.MathUtils.clamp(sinceHit * 1.4, 0, 1) * (1 - dip.current[role]);
+    const sh = v.sh.copy(SHOULDER[role]);
+    // hand position: out to the side, forward over the kit, lifted by `raise`, dropped by `dip`
+    const lift = raise * 0.62 - dip.current[role] * 0.55;
+    const reach = 0.5 + dip.current[role] * 0.35; // reach further forward when striking down
+    v.hand.set(sh.x + sideX * (0.22 + raise * 0.14), sh.y + lift, sh.z - reach + Math.sin(t * 2 + sideX) * 0.02);
+    // elbow: midway, pushed out and slightly up
+    v.elb.copy(sh).lerp(v.hand, 0.5).add(new THREE.Vector3(sideX * 0.16, 0.06 + raise * 0.05, 0.02));
+    poseLimb(upper.current, sh, v.elb);
+    poseLimb(fore.current, v.elb, v.hand);
+    // hand group aims the stick from hand along the yaw/pitch toward the kit
+    const h = hand.current;
+    if (!h) return;
+    h.position.copy(v.hand);
+    h.rotation.set(THREE.MathUtils.degToRad(sm.pitch) - raise * 0.9 - dip.current[role] * 0.4, THREE.MathUtils.degToRad(sm.yaw), 0);
+  };
+
+  useFrame((state, dt) => {
+    const t = state.clock.elapsedTime;
+    // subtle groove on the torso + head bob to the beat
+    const beat = Math.max(0, 1 - (performance.now() - api.current.lastHitAt) / 300);
+    if (body.current) {
+      body.current.position.y = -Math.abs(Math.sin(t * 2.2)) * 0.02 - beat * 0.03;
+      body.current.rotation.z = Math.sin(t * 0.7) * 0.02;
+    }
+    if (head.current) head.current.rotation.x = 0.12 + Math.sin(t * 2.4) * 0.04 + beat * 0.06;
+    poseArm('stick1', sticks.stick1, motion1, upperL, foreL, handL, dt, t);
+    poseArm('stick2', sticks.stick2, motion2, upperR, foreR, handR, dt, t);
   });
-  const color = STICK_COLORS[role];
-  const skin = '#caa07a';
+
+  const shirt = '#14151b';
   return (
-    <group position={[x, 1.28, 1.35]}>
-      <group ref={pivot}>
-        {/* forearm behind the hand, toward the camera (drummer's own arms) */}
-        <mesh position={[0, 0.02, 0.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <capsuleGeometry args={[0.075, 0.7, 4, 10]} />
-          <meshStandardMaterial color={skin} roughness={0.8} />
+    <group position={[0, 0, 0]}>
+      {/* drum stool */}
+      <mesh position={[0, 0.5, 1.95]} castShadow>
+        <cylinderGeometry args={[0.28, 0.3, 0.12, 20]} />
+        <meshStandardMaterial color="#0e0e12" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 0.25, 1.95]}>
+        <cylinderGeometry args={[0.04, 0.06, 0.5, 10]} />
+        <meshStandardMaterial color="#6a6e79" metalness={0.9} roughness={0.35} />
+      </mesh>
+      <group ref={body}>
+        {/* hips / seat contact */}
+        <mesh position={[0, 0.66, 1.85]} castShadow>
+          <boxGeometry args={[0.62, 0.34, 0.5]} />
+          <meshStandardMaterial color="#101017" roughness={0.9} />
         </mesh>
-        {/* fist */}
-        <mesh position={[0, 0, 0.06]}>
-          <sphereGeometry args={[0.085, 14, 12]} />
-          <meshStandardMaterial color={skin} roughness={0.8} />
+        {/* back / torso leaning slightly forward toward the kit */}
+        <mesh position={[0, 1.12, 1.72]} rotation={[-0.22, 0, 0]} castShadow>
+          <capsuleGeometry args={[0.32, 0.62, 6, 14]} />
+          <meshStandardMaterial color={shirt} roughness={0.9} />
         </mesh>
-        {/* stick forward along -z */}
-        <mesh position={[0, 0, -0.4]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <cylinderGeometry args={[0.012, 0.02, 0.8, 16]} />
-          <meshStandardMaterial color="#e8d9b8" roughness={0.6} />
+        {/* shoulders */}
+        <mesh position={[0, 1.44, 1.64]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <capsuleGeometry args={[0.17, 0.42, 4, 12]} />
+          <meshStandardMaterial color={shirt} roughness={0.9} />
         </mesh>
-        <mesh position={[0, 0, -0.8]}>
-          <sphereGeometry args={[0.022, 16, 16]} />
-          <meshStandardMaterial color="#f4ecd8" roughness={0.5} />
+        {/* neck + head (short-hair, seen from behind) */}
+        <mesh position={[0, 1.6, 1.66]}>
+          <cylinderGeometry args={[0.09, 0.11, 0.16, 12]} />
+          <meshStandardMaterial color={SKIN} roughness={0.8} />
         </mesh>
-        <mesh position={[0, 0, -0.06]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.024, 0.024, 0.12, 16]} />
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} roughness={0.4} />
-        </mesh>
+        <group ref={head} position={[0, 1.78, 1.66]}>
+          <mesh castShadow>
+            <sphereGeometry args={[0.18, 20, 16]} />
+            <meshStandardMaterial color={SKIN} roughness={0.85} />
+          </mesh>
+          {/* hair cap */}
+          <mesh position={[0, 0.03, 0.02]}>
+            <sphereGeometry args={[0.185, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.62]} />
+            <meshStandardMaterial color="#2a2118" roughness={1} />
+          </mesh>
+          {/* faded sides */}
+          <mesh position={[0, -0.02, 0.02]}>
+            <sphereGeometry args={[0.183, 20, 16, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.3]} />
+            <meshStandardMaterial color={SKIN_DARK} roughness={1} />
+          </mesh>
+        </group>
+        {/* arms (posed each frame). Upper + fore are unit cylinders re-posed by poseLimb. */}
+        <mesh ref={upperL} castShadow><cylinderGeometry args={[0.075, 0.07, 1, 10]} /><meshStandardMaterial color={SKIN} roughness={0.8} /></mesh>
+        <mesh ref={foreL} castShadow><cylinderGeometry args={[0.06, 0.07, 1, 10]} /><meshStandardMaterial color={SKIN} roughness={0.8} /></mesh>
+        <mesh ref={upperR} castShadow><cylinderGeometry args={[0.075, 0.07, 1, 10]} /><meshStandardMaterial color={SKIN} roughness={0.8} /></mesh>
+        <mesh ref={foreR} castShadow><cylinderGeometry args={[0.06, 0.07, 1, 10]} /><meshStandardMaterial color={SKIN} roughness={0.8} /></mesh>
+        <Hand ref={handL} role="stick1" />
+        <Hand ref={handR} role="stick2" />
       </group>
+    </group>
+  );
+}
+
+/* a fist gripping a drumstick that points forward (-z) from the hand */
+const Hand = ({ ref, role }: { ref: React.Ref<THREE.Group>; role: StickRole }) => {
+  const color = STICK_COLORS[role];
+  return (
+    <group ref={ref}>
+      <mesh>
+        <sphereGeometry args={[0.075, 14, 12]} />
+        <meshStandardMaterial color={SKIN} roughness={0.8} />
+      </mesh>
+      {/* wrist band in stick colour */}
+      <mesh position={[0, 0, 0.08]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.085, 0.085, 0.08, 14]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} roughness={0.5} />
+      </mesh>
+      {/* stick */}
+      <mesh position={[0, 0, -0.42]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.014, 0.022, 0.86, 14]} />
+        <meshStandardMaterial color="#e8d9b8" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 0, -0.86]}>
+        <sphereGeometry args={[0.024, 14, 14]} />
+        <meshStandardMaterial color="#f4ecd8" roughness={0.5} />
+      </mesh>
+    </group>
+  );
+};
+
+/* three bandmates downstage, backs to us, facing the crowd */
+function BandMembers() {
+  const g = useRef<THREE.Group>(null!);
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    g.current.children.forEach((c, i) => (c.rotation.z = Math.sin(t * 1.4 + i * 2) * 0.04));
+  });
+  const members: Array<{ x: number; shirt: string; guitar?: string }> = [
+    { x: -3.2, shirt: '#1a1a22', guitar: '#7a2b2b' },
+    { x: 0.2, shirt: '#101018' },
+    { x: 3.4, shirt: '#161620', guitar: '#22304a' },
+  ];
+  return (
+    <group ref={g} position={[0, 0, -4.6]}>
+      {members.map((m, i) => (
+        <group key={i} position={[m.x, 0, 0]}>
+          <mesh position={[0, 0.55, 0]}><cylinderGeometry args={[0.16, 0.2, 1.1, 10]} /><meshStandardMaterial color={m.shirt} roughness={1} /></mesh>
+          <mesh position={[0, 1.25, 0]}><capsuleGeometry args={[0.22, 0.5, 4, 10]} /><meshStandardMaterial color={m.shirt} roughness={1} /></mesh>
+          <mesh position={[0, 1.78, 0]}><sphereGeometry args={[0.17, 14, 12]} /><meshStandardMaterial color="#171017" roughness={1} /></mesh>
+          {m.guitar && (
+            <mesh position={[0.05, 1.1, 0.18]} rotation={[0.2, 0.3, 0.5]}>
+              <boxGeometry args={[0.42, 0.9, 0.1]} />
+              <meshStandardMaterial color={m.guitar} roughness={0.5} metalness={0.2} />
+            </mesh>
+          )}
+          {/* mic stand for the centre singer */}
+          {i === 1 && (
+            <mesh position={[0, 1.3, -0.35]} rotation={[0.3, 0, 0]}>
+              <cylinderGeometry args={[0.02, 0.02, 1.9, 8]} />
+              <meshStandardMaterial color="#8a8e99" metalness={0.9} roughness={0.4} />
+            </mesh>
+          )}
+        </group>
+      ))}
     </group>
   );
 }
@@ -618,10 +785,10 @@ export function DrumScene({ api, sticks }: { api: MutableRefObject<DrumSceneApi>
   return (
     <Canvas
       shadows={quality.shadows}
-      camera={{ position: [0, 2.5, 3.6], fov: 48, near: 0.3, far: 80 }}
+      camera={{ position: [0, 3.35, 4.5], fov: 62, near: 0.3, far: 80 }}
       dpr={quality.dpr}
       gl={{ antialias: quality.antialias, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
-      onCreated={({ camera }) => camera.lookAt(0, 1.45, -6)}
+      onCreated={({ camera }) => camera.lookAt(0, 1.2, -5)}
     >
       <color attach="background" args={['#07060d']} />
       <fogExp2 attach="fog" args={['#0e0820', 0.03]} />
@@ -630,12 +797,12 @@ export function DrumScene({ api, sticks }: { api: MutableRefObject<DrumSceneApi>
       <Rig halo={halo} api={api} count={high ? 8 : 5} />
       <Haze tex={halo} count={high ? 7 : 3} />
       <Crowd count={high ? 150 : 70} api={api} halo={halo} />
+      <BandMembers />
       {DRUM_SPECS.map((s) => (
         <Drum key={s.id} spec={s} api={api} />
       ))}
       <HitBursts api={api} />
-      <Stick role="stick1" controllerId={sticks.stick1} api={api} />
-      <Stick role="stick2" controllerId={sticks.stick2} api={api} />
+      <Drummer sticks={sticks} api={api} />
     </Canvas>
   );
 }
