@@ -8,25 +8,18 @@
  * Everything is procedural (no assets) so it works offline and loads instantly. The low
  * quality tier drops shadows, half the beams and half the crowd.
  */
-import { useMemo, useRef, type MutableRefObject } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { ControllerId } from '@aero/motion-core';
-import { CHORD_VOICINGS, type ChordName, type StrumDirection } from '@aero/music-engine';
+import { CHORD_VOICINGS, type StrumDirection } from '@aero/music-engine';
 import { sceneSettings } from '@/features/activity/sceneQuality';
 import { useMotionRef } from '@/store/controllers';
 import { guitarModel, type GuitarModel, type GuitarModelId } from './guitars';
+import { createGuitarSceneApi, type GuitarSceneApi } from './sceneApi';
 
-export interface GuitarSceneApi {
-  chord: ChordName;
-  /** strum events queued for the scene */
-  strums: Array<{ direction: StrumDirection; velocity: number; times: Array<number | null>; at: number; consumed: boolean; seen?: boolean }>;
-  muteAt: number;
-}
-
-export function createGuitarSceneApi(): GuitarSceneApi {
-  return { chord: 'C', strums: [], muteAt: 0 };
-}
+export type { GuitarSceneApi } from './sceneApi';
+export { createGuitarSceneApi } from './sceneApi';
 
 /* ------------------------------------------------------------------------------------------ */
 /* Shared helpers                                                                              */
@@ -35,8 +28,26 @@ export function createGuitarSceneApi(): GuitarSceneApi {
 const ACCENT = '#c98bff';
 const STRING_COUNT = 6;
 const STRING_SPACING = 0.075;
-const STRING_LEN = 3.2;
 const STRING_RADII = [0.011, 0.0095, 0.008, 0.0062, 0.005, 0.0042];
+
+/* --- Neck geometry (guitar-local space; the neck runs along +x, nut at the headstock end) ---
+ * Everything that has to sit on the fretboard — the frets themselves, the inlays, the chord
+ * dots and the guitarist's fret hand — derives its x from these helpers so they always agree. */
+const BRIDGE_X = -0.5;
+const NUT_X = 2.95;
+const SCALE_LEN = NUT_X - BRIDGE_X;
+/** x of the metal fret wire for fret `n` (n = 0 is the nut). */
+const fretX = (n: number): number => NUT_X - SCALE_LEN * (1 - Math.pow(2, -n / 12));
+/** x where a fingertip presses for fret `n` — just behind the wire, in the middle of the fret. */
+const fretPressX = (n: number): number => fretX(Math.max(0, n - 0.5));
+/** y of string `i` (0 = low E), fractional values allowed. */
+const stringY = (i: number): number => (i - 2.5) * STRING_SPACING;
+/** Strings run from the bridge to the nut. */
+const STRING_LEN = NUT_X - BRIDGE_X;
+const STRING_MID_X = (NUT_X + BRIDGE_X) / 2;
+/** Top of the fretboard laminate; the strings float just above it. */
+const BOARD_Z = 0.026;
+const STRING_Z = 0.06;
 
 /** Radial soft-disc texture used for light halos and haze sheets. */
 function useRadialTexture(inner = 'rgba(255,255,255,1)', outer = 'rgba(255,255,255,0)', size = 256) {
@@ -250,7 +261,7 @@ function GuitarBody({ model }: { model: GuitarModel }) {
 }
 
 function Neck({ model }: { model: GuitarModel }) {
-  const frets = useMemo(() => Array.from({ length: 12 }, (_, i) => 0.95 + (i + 1) * 0.17), []);
+  const frets = useMemo(() => Array.from({ length: 15 }, (_, i) => fretX(i + 1)), []);
   const hw = model.hardware === 'gold' ? '#d9b25a' : '#dfe3ec';
   const wood = model.id === 'flyingv' ? '#2a1a12' : '#3a2414';
   return (
@@ -269,13 +280,13 @@ function Neck({ model }: { model: GuitarModel }) {
           <meshStandardMaterial color="#d8dbe6" metalness={1} roughness={0.25} />
         </mesh>
       ))}
-      {[3, 5, 7, 9].map((f) => (
-        <mesh key={f} position={[0.95 + f * 0.17 - 0.085, 0, 0.028]}>
+      {[3, 5, 7, 9, 12].map((f) => (
+        <mesh key={f} position={[fretPressX(f), 0, 0.028]}>
           <circleGeometry args={[0.03, 12]} />
           <meshStandardMaterial color="#e9e2cf" roughness={0.5} />
         </mesh>
       ))}
-      <mesh position={[3.0, 0, 0.035]}>
+      <mesh position={[NUT_X, 0, 0.035]}>
         <boxGeometry args={[0.03, 0.5, 0.03]} />
         <meshStandardMaterial color="#f1ead9" roughness={0.5} />
       </mesh>
@@ -314,24 +325,25 @@ function Strings({ api }: { api: MutableRefObject<GuitarSceneApi> }) {
       const m = refs.current[i];
       if (!m) continue;
       const amp = amps.current[i];
-      m.position.z = 0.06 + Math.sin(phase.current[i]) * amp * 0.03;
+      m.position.z = STRING_Z + Math.sin(phase.current[i]) * amp * 0.03;
       m.scale.set(1, 1 + amp * 3.5, 1 + amp * 3.5);
       (m.material as THREE.MeshStandardMaterial).emissiveIntensity = amp * 1.2;
       const dot = fretDots.current[i];
       if (dot) {
-        const fret = voicing[i];
-        dot.visible = fret !== null && fret > 0;
-        if (fret) dot.position.x = 0.95 + fret * 0.17 - 0.085;
+        const lead = a.mode === 'lead' ? a.lead : null;
+        const fret = lead ? (lead.string === i ? lead.fret : null) : voicing[i];
+        dot.visible = fret !== null && fret !== undefined && fret > 0;
+        if (fret) dot.position.x = fretPressX(fret);
       }
     }
   });
   return (
     <group>
       {Array.from({ length: STRING_COUNT }).map((_, i) => {
-        const y = (i - 2.5) * STRING_SPACING;
+        const y = stringY(i);
         return (
           <group key={i}>
-            <mesh ref={(m) => m && (refs.current[i] = m)} position={[STRING_LEN / 2 - 0.55, y, 0.06]} rotation={[0, 0, Math.PI / 2]}>
+            <mesh ref={(m) => m && (refs.current[i] = m)} position={[STRING_MID_X, y, STRING_Z]} rotation={[0, 0, Math.PI / 2]}>
               <cylinderGeometry args={[STRING_RADII[i], STRING_RADII[i], STRING_LEN, 8]} />
               <meshStandardMaterial color="#e9ecf5" metalness={1} roughness={0.25} emissive={ACCENT} emissiveIntensity={0} />
             </mesh>
@@ -354,6 +366,88 @@ const GUITAR_POS = new THREE.Vector3(0.05, 1.0, 0.3);
 const GUITAR_ROT = new THREE.Euler(0.1, -0.5, 0.62);
 const GUITAR_SCALE = 0.3;
 
+/* --- Fret hand -----------------------------------------------------------------------------
+ * The hand lives inside the guitar group, so everything below is in guitar-local units (the
+ * group is scaled by GUITAR_SCALE) and lines up with the fretboard by construction. */
+const FINGER_COUNT = 4;
+/** Knuckle row across the palm: index first, so knuckle x walks toward the higher frets. */
+const KNUCKLES: Array<[number, number, number]> = [
+  [0.15, 0.09, 0.05],
+  [0.05, 0.11, 0.06],
+  [-0.05, 0.11, 0.06],
+  [-0.145, 0.09, 0.05],
+];
+const FINGER_RADIUS = [0.05, 0.048, 0.045, 0.04];
+/** Fingertip presses just under the strings; an idle finger hovers above the board. */
+const TIP_Z = STRING_Z - 0.014;
+const IDLE_TIP_Z = BOARD_Z + 0.16;
+/** Palm sits this far below the tracked string, on the near side of the neck. */
+const PALM_DROP = 0.3;
+const PALM_Z = -0.01;
+
+interface FingerTarget {
+  active: boolean;
+  /** absolute chord fret this finger stops */
+  fret: number;
+  /** guitar-local y of the string it lands on */
+  y: number;
+  /** >1 when the finger barres several strings */
+  span: number;
+}
+const FINGER_TARGETS: FingerTarget[] = Array.from({ length: FINGER_COUNT }, () => ({ active: false, fret: 0, y: 0, span: 1 }));
+const scratchNotes: Array<[number, number]> = [];
+
+/**
+ * Decide which finger stops which string for a set of fretted notes (`[string, fret]`, fret > 0).
+ * Index finger takes the lowest fret, the others fan out one fret each; three or more strings on
+ * the lowest fret become a barre under the index finger. Mutates FINGER_TARGETS in place.
+ */
+function planFingers(notes: Array<[number, number]>): { baseFret: number; meanString: number; any: boolean } {
+  for (const f of FINGER_TARGETS) {
+    f.active = false;
+    f.span = 1;
+  }
+  if (!notes.length) return { baseFret: 1, meanString: 2.5, any: false };
+  notes.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+  const baseFret = notes[0][1];
+  let meanString = 0;
+  for (const n of notes) meanString += n[0];
+  meanString /= notes.length;
+  const onBase = notes.filter((n) => n[1] === baseFret);
+  let next = 0;
+  const barre = onBase.length >= 3;
+  if (barre) {
+    let lo = 6;
+    let hi = -1;
+    for (const n of onBase) {
+      lo = Math.min(lo, n[0]);
+      hi = Math.max(hi, n[0]);
+    }
+    const t = FINGER_TARGETS[0];
+    t.active = true;
+    t.fret = baseFret;
+    t.y = (stringY(lo) + stringY(hi)) / 2;
+    t.span = Math.max(1, (stringY(hi) - stringY(lo)) / 0.055);
+    next = 1;
+  }
+  for (const [s, fr] of notes) {
+    if (barre && fr === baseFret) continue;
+    let idx = Math.max(next, Math.min(FINGER_COUNT - 1, fr - baseFret));
+    while (idx < FINGER_COUNT && FINGER_TARGETS[idx].active) idx++;
+    if (idx >= FINGER_COUNT) continue;
+    const t = FINGER_TARGETS[idx];
+    t.active = true;
+    t.fret = fr;
+    t.y = stringY(s);
+    t.span = 1;
+    next = idx + 1;
+  }
+  return { baseFret, meanString, any: true };
+}
+
+/** Frame-rate independent ease: fraction of the remaining distance to cover this frame. */
+const ease = (dt: number, tau: number): number => 1 - Math.exp(-dt / tau);
+
 function Guitarist({ api, model, strumController, fretController }: { api: MutableRefObject<GuitarSceneApi>; model: GuitarModel; strumController: ControllerId | null; fretController: ControllerId | null }) {
   const strumMotion = useMotionRef(strumController ?? 2);
   const fretMotion = useMotionRef(fretController ?? 1);
@@ -366,6 +460,25 @@ function Guitarist({ api, model, strumController, fretController }: { api: Mutab
   const leftFore = useRef<THREE.Mesh | null>(null);
   const hand = useRef<THREE.Mesh>(null!);
   const pick = useRef<THREE.Mesh>(null!);
+  const fretHand = useRef<THREE.Group>(null!);
+  const fingers = useRef<Array<THREE.Mesh | null>>([null, null, null, null]);
+  const tips = useRef<Array<THREE.Mesh | null>>([null, null, null, null]);
+
+  // fret-hand state: smoothed neck position, its velocity (for the anticipatory lean) and the
+  // per-finger targets, all eased with time constants so the motion is frame-rate independent.
+  const handFret = useRef(1);
+  const handStr = useRef(2.5);
+  const handVel = useRef(0);
+  const prevFret = useRef(1);
+  const planKey = useRef('');
+  const baseFret = useRef(1);
+  const meanString = useRef(2.5);
+  const fingerX = useRef(new Float32Array(FINGER_COUNT));
+  const fingerY = useRef(new Float32Array(FINGER_COUNT));
+  const fingerZ = useRef(new Float32Array(FINGER_COUNT));
+  const fingerSpan = useRef(new Float32Array(FINGER_COUNT).fill(1));
+  const primed = useRef(false);
+  const invHand = useMemo(() => new THREE.Matrix4(), []);
 
   const strumY = useRef(0);
   const anim = useRef(0);
@@ -375,7 +488,7 @@ function Guitarist({ api, model, strumController, fretController }: { api: Mutab
   const nodVel = useRef(0);
   const bob = useRef(0);
 
-  const v = useMemo(() => ({ a: new THREE.Vector3(), b: new THREE.Vector3(), c: new THREE.Vector3(), d: new THREE.Vector3() }), []);
+  const v = useMemo(() => ({ a: new THREE.Vector3(), b: new THREE.Vector3(), c: new THREE.Vector3(), d: new THREE.Vector3(), e: new THREE.Vector3(), f: new THREE.Vector3() }), []);
 
   useFrame((state, dt) => {
     const a = api.current;
@@ -411,10 +524,85 @@ function Guitarist({ api, model, strumController, fretController }: { api: Mutab
     bob.current = Math.max(0, bob.current - dt * 1.4);
     const groove = Math.sin(t * 2.4) * 0.03 + Math.sin(t * 0.7) * 0.02;
     if (head.current) head.current.rotation.x = nod.current * 0.35 + groove * 2 + 0.12;
+
+    /* ---- fret hand: where on the neck, and which finger stops which string ---- */
+    const mode = a.mode ?? 'chords';
+    const lead = mode === 'lead' ? (a.lead ?? null) : null;
+    const key = lead ? `L${lead.string}:${lead.fret}` : `C${a.chord}`;
+    if (key !== planKey.current) {
+      planKey.current = key;
+      scratchNotes.length = 0;
+      if (lead) {
+        if (lead.fret > 0) scratchNotes.push([THREE.MathUtils.clamp(lead.string, 0, 5), lead.fret]);
+        else meanString.current = THREE.MathUtils.clamp(lead.string, 0, 5);
+      } else {
+        const voicing = CHORD_VOICINGS[a.chord] ?? [];
+        for (let i = 0; i < STRING_COUNT; i++) {
+          const fr = voicing[i];
+          if (fr !== null && fr !== undefined && fr > 0) scratchNotes.push([i, fr]);
+        }
+      }
+      const plan = planFingers(scratchNotes);
+      baseFret.current = plan.baseFret;
+      if (plan.any) meanString.current = plan.meanString;
+    }
+
+    const wantFret = Number.isFinite(a.fretPos) ? THREE.MathUtils.clamp(a.fretPos, 0, 1.25) * 12 : baseFret.current;
+    const wantStr = Number.isFinite(a.stringPos) ? THREE.MathUtils.clamp(a.stringPos, 0, 5) : meanString.current;
+    const snap = !primed.current;
+    if (snap) {
+      // first frame: snap, so the hand never slides in from the default pose
+      primed.current = true;
+      handFret.current = wantFret;
+      prevFret.current = wantFret;
+      handStr.current = wantStr;
+    }
+    handFret.current += (wantFret - handFret.current) * ease(dt, 0.075);
+    handStr.current += (wantStr - handStr.current) * ease(dt, 0.09);
+    const rawVel = (handFret.current - prevFret.current) / Math.max(dt, 1e-4);
+    prevFret.current = handFret.current;
+    handVel.current += (rawVel - handVel.current) * ease(dt, 0.05);
+    // lean: the wrist leads the travel and settles back to 0 when the hand arrives
+    const lean = THREE.MathUtils.clamp(handVel.current * 0.035, -0.4, 0.4);
+    const stretch = THREE.MathUtils.clamp(1 - handFret.current / 12, 0, 1);
+
     if (body.current) {
       body.current.position.y = -Math.abs(Math.sin(t * 2.4)) * 0.025 - bob.current * 0.04;
-      body.current.rotation.z = Math.sin(t * 0.6) * 0.03;
-      body.current.rotation.y = Math.sin(t * 0.35) * 0.06;
+      // the torso opens up as the hand travels out to the nut end of the neck
+      body.current.rotation.z = Math.sin(t * 0.6) * 0.03 + stretch * 0.03;
+      body.current.rotation.y = Math.sin(t * 0.35) * 0.06 + stretch * 0.08;
+    }
+
+    if (fretHand.current) {
+      const hx = fretPressX(handFret.current) - lean * 0.07;
+      const hy = stringY(handStr.current) - PALM_DROP;
+      fretHand.current.position.set(hx, hy, PALM_Z);
+      fretHand.current.rotation.set(lean * 0.12, lean * 0.25, -lean * 0.4);
+      fretHand.current.updateMatrix();
+      invHand.copy(fretHand.current.matrix).invert();
+      for (let i = 0; i < FINGER_COUNT; i++) {
+        const ft = FINGER_TARGETS[i];
+        // a finger with no note fans out one fret past the last one and hovers off the board
+        const fret = handFret.current + (ft.active ? ft.fret - baseFret.current : i);
+        const tx = fretPressX(fret);
+        const ty = ft.active ? ft.y : stringY(THREE.MathUtils.clamp(handStr.current, 1.2, 4)) - 0.05 + i * 0.02;
+        const tz = ft.active ? TIP_Z : IDLE_TIP_Z;
+        const k = snap ? 1 : ease(dt, 0.055);
+        fingerX.current[i] += (tx - fingerX.current[i]) * k;
+        fingerY.current[i] += (ty - fingerY.current[i]) * k;
+        fingerZ.current[i] += (tz - fingerZ.current[i]) * k;
+        fingerSpan.current[i] += (ft.span - fingerSpan.current[i]) * k;
+        const tip = v.e.set(fingerX.current[i], fingerY.current[i], fingerZ.current[i]).applyMatrix4(invHand);
+        tip.y = THREE.MathUtils.clamp(tip.y, 0.12, 0.52);
+        const knuckle = v.f.set(KNUCKLES[i][0], KNUCKLES[i][1], KNUCKLES[i][2]);
+        const fm = fingers.current[i];
+        if (fm) LimbPose.apply(fm, knuckle, tip);
+        const tp = tips.current[i];
+        if (tp) {
+          tp.position.copy(tip);
+          tp.scale.set(1, fingerSpan.current[i], 1);
+        }
+      }
     }
 
     // guitar: neck tilts slightly with the fret hand
@@ -442,11 +630,12 @@ function Guitarist({ api, model, strumController, fretController }: { api: Mutab
       pick.current.scale.setScalar(1 + flash.current * 0.2);
       (pick.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.6 + flash.current;
 
-      const fretLocal = v.a.set(2.0, 0.05, 0.12);
+      // the forearm ends at the palm wherever it now sits on the neck
+      const fretLocal = v.a.set(fretPressX(handFret.current), stringY(handStr.current) - PALM_DROP, PALM_Z);
       const fretWorld = guitar.current.localToWorld(fretLocal);
       body.current.worldToLocal(fretWorld);
-      const shoulderL = v.b.set(-0.26, 1.42, 0.05);
-      const elbowL = v.c.copy(shoulderL).lerp(fretWorld, 0.45).add(v.d.set(-0.12, -0.12, 0.05));
+      const shoulderL = v.b.set(-0.26 + stretch * 0.03, 1.42 - stretch * 0.02, 0.05 + stretch * 0.05);
+      const elbowL = v.c.copy(shoulderL).lerp(fretWorld, 0.45).add(v.d.set(-0.12 - stretch * 0.04, -0.2 - lean * 0.05, 0.14));
       if (leftUpper.current) LimbPose.apply(leftUpper.current, shoulderL, elbowL);
       if (leftFore.current) LimbPose.apply(leftFore.current, elbowL, fretWorld);
     }
@@ -534,6 +723,34 @@ function Guitarist({ api, model, strumController, fretController }: { api: Mutab
             <coneGeometry args={[0.07, 0.14, 3]} />
             <meshStandardMaterial color={ACCENT} emissive={ACCENT} emissiveIntensity={0.7} roughness={0.35} />
           </mesh>
+          {/* fret hand: rides the neck, posed every frame in guitar-local space */}
+          <group ref={fretHand} name="fretHand">
+            {/* palm + thumb behind the neck */}
+            <mesh scale={[1.2, 1, 0.7]} castShadow>
+              <sphereGeometry args={[0.135, 12, 10]} />
+              <meshStandardMaterial color={skin} roughness={0.9} />
+            </mesh>
+            <mesh
+              ref={(m) => {
+                if (m) LimbPose.apply(m, new THREE.Vector3(0.03, -0.04, -0.03), new THREE.Vector3(0.1, 0.17, -0.14));
+              }}
+            >
+              <cylinderGeometry args={[0.055, 0.045, 1, 8]} />
+              <meshStandardMaterial color={skin} roughness={0.9} />
+            </mesh>
+            {KNUCKLES.map((_, i) => (
+              <group key={i}>
+                <mesh ref={(m) => void (fingers.current[i] = m)} castShadow>
+                  <cylinderGeometry args={[FINGER_RADIUS[i], FINGER_RADIUS[i] * 0.72, 1, 7]} />
+                  <meshStandardMaterial color={skin} roughness={0.9} />
+                </mesh>
+                <mesh ref={(m) => void (tips.current[i] = m)} name={`fretTip${i}`}>
+                  <sphereGeometry args={[FINGER_RADIUS[i] * 0.8, 8, 6]} />
+                  <meshStandardMaterial color={skin} roughness={0.9} />
+                </mesh>
+              </group>
+            ))}
+          </group>
         </group>
       </group>
     </group>
@@ -1077,6 +1294,14 @@ function Stage({ shadows }: { shadows: boolean }) {
 }
 
 function CameraRig() {
+  const three = useThree();
+  // dev handle: `__guitarThree.camera.position.z = 2.4` pulls in for a look at the fret hand,
+  // `__guitarThree.gl.info.render` reports the frame cost, `__guitarThree.advance(t)` steps a
+  // frame by hand when the tab is in the background and rAF is parked.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    (window as unknown as Record<string, unknown>).__guitarThree = three;
+  }, [three]);
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     const cam = state.camera;
@@ -1124,6 +1349,15 @@ function Rig({ beams, hazeCount }: { beams: BeamSpec[]; hazeCount: number }) {
 export function GuitarScene({ api, strumController, fretController, model }: { api: MutableRefObject<GuitarSceneApi>; strumController: ControllerId | null; fretController: ControllerId | null; model: GuitarModelId }) {
   const quality = sceneSettings();
   const high = quality.shadows;
+  // dev handle: drive the fret hand from the console before the input layer publishes anything,
+  // e.g. __guitarScene.fretPos = 0.6; __guitarScene.stringPos = 4
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    (window as unknown as Record<string, unknown>).__guitarScene = api.current;
+    return () => {
+      delete (window as unknown as Record<string, unknown>).__guitarScene;
+    };
+  }, [api]);
   const beams = high ? [...BEAMS_BACK, ...BEAMS_MID] : [BEAMS_BACK[0], BEAMS_BACK[2], BEAMS_BACK[4], BEAMS_MID[1]];
   const m = guitarModel(model);
   return (
