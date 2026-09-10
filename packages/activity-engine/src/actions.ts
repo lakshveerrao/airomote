@@ -47,6 +47,10 @@ export const ACTION_TYPES = [
   'CONTINUOUS_Y',
   'CONTINUOUS_Z',
   'INTENSITY',
+  /** Continuous position along a guitar neck: -1 = nut / open, +1 = top of the range. */
+  'FRET_POSITION',
+  /** Continuous string selector: -1 = lowest string, +1 = highest string. */
+  'STRING_SELECT',
 ] as const;
 
 export type ActionType = (typeof ACTION_TYPES)[number];

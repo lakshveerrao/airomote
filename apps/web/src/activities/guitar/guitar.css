@@ -51,6 +51,64 @@
   color: var(--text-faint);
   white-space: nowrap;
 }
+.mode-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 200px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  text-align: left;
+  transition: all var(--dur) var(--ease);
+}
+.mode-card:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.mode-card--on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--accent) inset, 0 8px 30px -12px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.mode-card__name {
+  font-weight: 750;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+.mode-card__sub {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.lead-readout {
+  display: flex;
+  gap: 22px;
+  margin-top: 12px;
+}
+.lead-readout__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lead-readout__item b {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
 .compass {
   position: relative;
   height: 190px;
