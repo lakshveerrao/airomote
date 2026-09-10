@@ -1,8 +1,38 @@
 import { describe, expect, it } from 'vitest';
 import { AudioEngine, velocityToGain, VoicePool } from './engine';
 import { DrumKit } from './drums';
-import { CHORD_NAMES, Guitar, chordFrequencies, chordNotes, midiToHz, renderPluck } from './guitar';
+import {
+  CHORD_NAMES,
+  Guitar,
+  MAX_LEAD_FRET,
+  OPEN_STRINGS_MIDI,
+  chordFrequencies,
+  chordNotes,
+  fretToMidi,
+  midiToHz,
+  midiToName,
+  renderPluck,
+} from './guitar';
 import { FakeGain, fakeContextFactory } from './fake-audio';
+
+/** Fundamental of a rendered pluck by autocorrelation, searched around `aboutHz`. */
+function estimateHz(out: Float32Array, aboutHz: number, sampleRate = 48000): number {
+  const n = out.length;
+  const seg = out.subarray(Math.floor(n * 0.15), Math.floor(n * 0.6));
+  const minLag = Math.max(2, Math.floor(sampleRate / (aboutHz * 1.5)));
+  const maxLag = Math.ceil(sampleRate / (aboutHz * 0.66));
+  let bestLag = minLag;
+  let best = -Infinity;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let acc = 0;
+    for (let i = 0; i < seg.length - lag; i += 2) acc += seg[i] * seg[i + lag];
+    if (acc > best) {
+      best = acc;
+      bestLag = lag;
+    }
+  }
+  return sampleRate / bestLag;
+}
 
 async function engine() {
   const { ctx, create } = fakeContextFactory();
@@ -126,6 +156,77 @@ describe('Guitar', () => {
     expect(g.activeVoices).toBe(6);
     g.mute();
     expect(g.activeVoices).toBe(0);
+  });
+
+  it('pluckNote sounds the right note for a string/fret pair', async () => {
+    const { e, ctx } = await engine();
+    const g = new Guitar(e);
+    const cases: Array<[number, number]> = [
+      [0, 0], // low E open  → E2
+      [0, 5], // low E, 5th  → A2
+      [2, 7], // D string, 7 → A3
+      [5, 12], // high E, 12  → E5
+    ];
+    for (const [s, fret] of cases) {
+      ctx.started.length = 0;
+      const midi = fretToMidi(s, fret);
+      expect(midi).toBe(OPEN_STRINGS_MIDI[s] + fret);
+      const at = g.pluckNote(s, fret, 0.8);
+      expect(at).toBeGreaterThan(0);
+      const src = ctx.started.at(-1) as unknown as { buffer: { getChannelData(i: number): Float32Array }; startedAt: number };
+      expect(src.startedAt).toBeCloseTo(at, 6);
+      const hz = midiToHz(midi);
+      expect(Math.abs(estimateHz(src.buffer.getChannelData(0), hz) - hz) / hz).toBeLessThan(0.03);
+    }
+    expect(midiToName(fretToMidi(0, 0))).toBe('E2');
+    expect(midiToName(fretToMidi(5, 12))).toBe('E5');
+    expect(MAX_LEAD_FRET).toBe(12);
+  });
+
+  it('renders each lead note at most once and keeps prepare() to the chord notes', async () => {
+    const { e } = await engine();
+    const g = new Guitar(e);
+    g.prepare();
+    const afterPrepare = g.bufferCount;
+    expect(afterPrepare).toBeGreaterThan(0);
+    // 17th fret on the G string is not in any chord voicing → one new buffer
+    g.pluckNote(3, 17, 0.8);
+    const afterFirst = g.bufferCount;
+    expect(afterFirst).toBe(afterPrepare + 1);
+    for (let i = 0; i < 5; i++) g.pluckNote(3, 17, 0.8);
+    expect(g.bufferCount).toBe(afterFirst);
+    // a different velocity picks the other brightness → exactly one more buffer
+    g.pluckNote(3, 17, 0.1);
+    expect(g.bufferCount).toBe(afterFirst + 1);
+    g.pluckNote(3, 17, 0.1);
+    expect(g.bufferCount).toBe(afterFirst + 1);
+  });
+
+  it('strumFrets skips null strings and staggers the rest low→high / high→low', async () => {
+    const { e } = await engine();
+    const g = new Guitar(e);
+    const frets: Array<number | null> = [null, 3, null, 5, 5, null];
+    const down = g.strumFrets(frets, 'down', 0.5);
+    expect(down.chord).toBeNull();
+    expect(down.times.map((t) => t !== null)).toEqual([false, true, false, true, true, false]);
+    const played = [1, 3, 4];
+    for (let i = 1; i < played.length; i++) {
+      expect(down.times[played[i]]!).toBeGreaterThan(down.times[played[i - 1]]!);
+    }
+    expect(down.times[3]! - down.times[1]!).toBeCloseTo(Guitar.staggerFor(0.5), 6);
+    const up = g.strumFrets(frets, 'up', 0.5);
+    for (let i = 1; i < played.length; i++) {
+      expect(up.times[played[i]]!).toBeLessThan(up.times[played[i - 1]]!);
+    }
+    // a single-string "strum" is what lead mode uses
+    const lead = g.strumFrets([null, null, null, null, 7, null], 'down', 0.9);
+    expect(lead.times.filter((t) => t !== null).length).toBe(1);
+    // strum() still reports its chord and delegates to the same staggering
+    const c = g.strum('C', 'down', 0.5);
+    expect(c.chord).toBe('C');
+    expect(c.times[0]).toBeNull();
+    expect(c.times[2]! - c.times[1]!).toBeCloseTo(Guitar.staggerFor(0.5), 6);
+    expect(g.strumCount).toBe(4);
   });
 });
 

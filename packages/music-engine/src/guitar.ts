@@ -19,6 +19,23 @@ export const CHORD_VOICINGS: Record<ChordName, Array<number | null>> = {
 
 export const midiToHz = (midi: number): number => 440 * Math.pow(2, (midi - 69) / 12);
 
+/** Highest fret the lead/natural mode reaches by default. */
+export const MAX_LEAD_FRET = 12;
+
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+/** e.g. 64 → "E4". */
+export function midiToName(midi: number): string {
+  const m = Math.round(midi);
+  return `${NOTE_NAMES[((m % 12) + 12) % 12]}${Math.floor(m / 12) - 1}`;
+}
+
+/** MIDI note for a string (0 = low E) stopped at `fret` (0 = open). */
+export function fretToMidi(stringIndex: number, fret: number): number {
+  const s = Math.min(OPEN_STRINGS_MIDI.length - 1, Math.max(0, Math.round(stringIndex)));
+  return OPEN_STRINGS_MIDI[s] + Math.max(0, Math.round(fret));
+}
+
 /** MIDI note per string for a chord (null = muted string). */
 export function chordNotes(chord: ChordName): Array<number | null> {
   return CHORD_VOICINGS[chord].map((fret, i) => (fret === null ? null : OPEN_STRINGS_MIDI[i] + fret));
@@ -73,7 +90,8 @@ export function renderPluck(freqHz: number, seconds: number, brightness: number,
 }
 
 export interface StrumEvent {
-  chord: ChordName;
+  /** Named chord that produced the strum, or null for an explicit fret array (lead mode). */
+  chord: ChordName | null;
   direction: StrumDirection;
   velocity: number;
   /** Per-string scheduled start times (ctx time), low string first. null = muted. */
@@ -102,23 +120,35 @@ export class Guitar {
     return this.pool.size;
   }
 
+  /** Number of rendered Karplus–Strong buffers currently cached (diagnostics / tests). */
+  get bufferCount(): number {
+    return this.buffers.size;
+  }
+
   /** Render every note used by the chord set (call once after engine.unlock()). */
   prepare(): void {
     if (this.prepared) return;
-    const ctx = this.engine.context;
     const notes = new Set<number>();
     for (const c of CHORD_NAMES) for (const n of chordNotes(c)) if (n !== null) notes.add(n);
-    for (const midi of notes) {
-      for (const bright of [0, 1]) {
-        const hz = midiToHz(midi);
-        const secs = bright ? 2.6 : 1.2;
-        const data = renderPluck(hz, secs, bright ? 0.85 : 0.25, ctx.sampleRate);
-        const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
-        buf.getChannelData(0).set(data);
-        this.buffers.set(`${midi}:${bright}`, buf);
-      }
-    }
+    for (const midi of notes) for (const bright of [0, 1]) this.buffer(midi, bright);
     this.prepared = true;
+  }
+
+  /**
+   * Buffer for one note at one brightness, rendered on demand and cached forever.
+   * Chord notes are filled in by prepare(); lead notes land here the first time they sound.
+   */
+  private buffer(midi: number, bright: 0 | 1 | number): AudioBuffer {
+    const b = bright ? 1 : 0;
+    const key = `${midi}:${b}`;
+    const hit = this.buffers.get(key);
+    if (hit) return hit;
+    const ctx = this.engine.context;
+    const data = renderPluck(midiToHz(midi), b ? 2.6 : 1.2, b ? 0.85 : 0.25, ctx.sampleRate);
+    const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
+    buf.getChannelData(0).set(data);
+    this.buffers.set(key, buf);
+    return buf;
   }
 
   /** Stagger between strings in seconds for a given velocity. */
@@ -127,15 +157,25 @@ export class Guitar {
   }
 
   strum(chord: ChordName, direction: StrumDirection, velocity: number, when?: number): StrumEvent {
+    const ev = this.strumFrets(CHORD_VOICINGS[chord], direction, velocity, when);
+    ev.chord = chord;
+    return ev;
+  }
+
+  /**
+   * Strum an explicit per-string fret array (null = string not played), low string first.
+   * Lead mode passes a single non-null entry; chord mode goes through strum().
+   */
+  strumFrets(frets: Array<number | null>, direction: StrumDirection, velocity: number, when?: number): StrumEvent {
     const v = clamp01(velocity);
+    const notes = frets.map((f, i) => (f === null ? null : fretToMidi(i, f)));
     if (!this.engine.ensureRunning()) {
-      return { chord, direction, velocity: v, times: chordNotes(chord).map(() => null) };
+      return { chord: null, direction, velocity: v, times: notes.map(() => null) };
     }
     this.prepare();
     const ctx = this.engine.context;
     const t0 = Math.max(when ?? ctx.currentTime, ctx.currentTime) + 0.002;
     const stagger = Guitar.staggerFor(v);
-    const notes = chordNotes(chord);
     const order = notes.map((_, i) => i);
     if (direction === 'up') order.reverse();
     const times: Array<number | null> = notes.map(() => null);
@@ -149,10 +189,24 @@ export class Guitar {
       times[i] = t;
       this.pluck(ctx, midi, t, v, palm, i);
     }
-    const ev: StrumEvent = { chord, direction, velocity: v, times };
+    const ev: StrumEvent = { chord: null, direction, velocity: v, times };
     this.lastStrum = ev;
     this.strumCount++;
     return ev;
+  }
+
+  /**
+   * Pluck one string stopped at an arbitrary fret (lead mode). Returns the scheduled
+   * context time, or 0 when the engine is not running.
+   */
+  pluckNote(stringIndex: number, fret: number, velocity: number, when?: number): number {
+    const v = clamp01(velocity);
+    if (!this.engine.ensureRunning()) return 0;
+    const ctx = this.engine.context;
+    const s = Math.min(OPEN_STRINGS_MIDI.length - 1, Math.max(0, Math.round(stringIndex)));
+    const t = Math.max(when ?? ctx.currentTime, ctx.currentTime) + 0.002;
+    this.pluck(ctx, fretToMidi(s, fret), t, v, v < 0.12, s);
+    return t;
   }
 
   /** Damp all ringing strings quickly (left-hand mute). */
@@ -163,7 +217,7 @@ export class Guitar {
 
   private pluck(ctx: AudioContext, midi: number, t: number, v: number, palm: boolean, stringIndex: number): void {
     const bright = v > 0.45 && !palm ? 1 : 0;
-    const buf = this.buffers.get(`${midi}:${bright}`);
+    const buf = this.buffer(midi, bright);
     if (!buf) return;
     // one string can only ring once — re-plucking the same string damps the previous note
     this.pool.releaseAll(0.01, `s${stringIndex}`);
